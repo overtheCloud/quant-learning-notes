@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⑤ 风控与止损 · 图解讲义</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body class="with-sidebar">
+<aside class="sidebar" aria-label="全篇导航">
+  <div class="sb-brand"><div class="sb-t">📚 量化 · 图解讲义</div><div class="sb-s">crypto-trader 配套<br>01-07 按顺序学 · 随时互跳</div></div>
+  <nav class="sb-nav">
+    <a class="sb-item" href="00-index.html"><span class="sb-idx" style="background:#1c2333">00</span><span class="sb-txt">总览与使用</span></a>
+    <a class="sb-item" href="01-量化基础.html"><span class="sb-idx" style="background:#3454d1">01</span><span class="sb-txt">量化基础</span></a>
+    <a class="sb-item" href="02-freqtrade入门.html"><span class="sb-idx" style="background:#1f9d55">02</span><span class="sb-txt">freqtrade 入门</span></a>
+    <a class="sb-item" href="03-回测方法论.html"><span class="sb-idx" style="background:#b7791f">03</span><span class="sb-txt">回测方法论</span></a>
+    <a class="sb-item" href="04-经典策略与K线.html"><span class="sb-idx" style="background:#6d4fc1">04</span><span class="sb-txt">经典策略与 K 线</span></a>
+    <a class="sb-item cur" href="05-风控与止损.html"><span class="sb-idx" style="background:#d64545">05</span><span class="sb-txt">风控与止损</span><span class="sb-go">›</span></a>
+    <a class="sb-item" href="06-FreqAI与机器学习.html"><span class="sb-idx" style="background:#0f8a8a">06</span><span class="sb-txt">FreqAI 与机器学习</span></a>
+    <a class="sb-item" href="07-hyperopt参数优化.html"><span class="sb-idx" style="background:#3454d1">07</span><span class="sb-txt">hyperopt 参数优化</span></a>
+    <a class="sb-item" href="08-书单与拓展.html"><span class="sb-idx" style="background:#7b8499">08</span><span class="sb-txt">书单与拓展</span></a>
+  </nav>
+  <div class="sb-foot">浏览器 Ctrl+P 可导出 PDF<br>当前共 9 篇</div>
+</aside>
+
+<nav class="sb-topbar" aria-label="全篇导航">
+  <a href="00-index.html">00 总览</a>
+  <a href="01-量化基础.html">01 量化基础</a>
+  <a href="02-freqtrade入门.html">02 freqtrade</a>
+  <a href="03-回测方法论.html">03 回测</a>
+  <a href="04-经典策略与K线.html">04 策略·K线</a>
+  <a class="cur" href="05-风控与止损.html">05 风控</a>
+  <a href="06-FreqAI与机器学习.html">06 FreqAI</a>
+  <a href="07-hyperopt参数优化.html">07 hyperopt</a>
+  <a href="08-书单与拓展.html">08 书单</a>
+</nav>
+
+<div class="container">
+<div class="page">
+<header class="hero">
+  <span class="step-tag">STEP ⑤ · 保命技能</span>
+  <h1>风控与止损：活得久，比赚得快重要</h1>
+  <p class="goal">目标：理解「<b>活得久比赚得快重要</b>」。止损、仓位、回撤控制是策略的命 —— 尤其对 crypto-trader 这种<b>趋势策略</b>，止损就是安全气囊。本章用一张图讲透：止损太宽等于没设，太窄会被噪声反复扫出。</p>
+</header>
+<main class="content">
+
+<h2 class="section"><span class="sec-no">1</span>止损：给预测标一个「错误上限」</h2>
+<p>止损的本质不是「亏多少割肉」，而是<b>给策略的每次预测预设一个错误上限</b> —— 承认模型会错，错了只允许亏这么多。</p>
+
+<div class="figure">
+<svg viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <marker id="a4" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#d64545"/></marker>
+  </defs>
+  <rect width="680" height="280" fill="#ffffff"/>
+  <!-- 价格曲线 -->
+  <g font-size="12">
+    <text x="340" y="26" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">固定比例止损的运行逻辑</text>
+    <!-- 入场价线 -->
+    <polyline points="60,80 120,95 180,85 240,110 300,120 360,175 420,160 480,225 540,215 620,245" fill="none" stroke="#3454d1" stroke-width="2.4"/>
+    <line x1="60" y1="80" x2="620" y2="80" stroke="#1f9d55" stroke-width="1.4" stroke-dasharray="6 4"/>
+    <text x="52" y="76" text-anchor="end" fill="#1f9d55" font-weight="700">入场价</text>
+    <!-- 止损线 -->
+    <line x1="60" y1="150" x2="620" y2="150" stroke="#d64545" stroke-width="1.4" stroke-dasharray="6 4"/>
+    <text x="52" y="154" text-anchor="end" fill="#d64545" font-weight="700">止损线 (-5%)</text>
+    <!-- 箭头标注止损触发 -->
+    <line x1="360" y1="125" x2="360" y2="153" stroke="#d64545" stroke-width="2" marker-end="url(#a4)"/>
+    <text x="360" y="118" text-anchor="middle" fill="#d64545" font-weight="700">价格触及止损线 → 卖出离场</text>
+    <!-- 下方说明 -->
+    <rect x="60" y="200" width="560" height="60" rx="12" fill="#e9f7ef" stroke="#bfe6cf"/>
+    <text x="80" y="225" fill="#1f9d55" font-weight="700">✓ 意义</text>
+    <text x="80" y="246" fill="#47506b">单笔亏损被锁死在 5%（50U 仓位 → 最多亏 2.5U），账户不会因一次黑天鹅重伤</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 5-1</b> · 固定止损：错了只允许亏 5%，把单笔风险锁死</div>
+</div>
+
+<h2 class="section"><span class="sec-no">2</span>止损宽度必须和波动率匹配</h2>
+<p>这是 crypto-trader 项目踩过的最实在的一课：<b>BTC 1h 的常见波动就超过 5%</b>。如果你的止损比市场噪声还窄，你会被「正常晃动」反复扫出局。</p>
+
+<div class="figure">
+<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="300" fill="#ffffff"/>
+  <text x="340" y="26" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">止损宽窄的两难</text>
+  <!-- 三条带 -->
+  <g font-size="12.5">
+    <!-- 太窄 -->
+    <rect x="40" y="50" width="290" height="105" rx="12" fill="#fdeeee" stroke="#f3caca"/>
+    <text x="185" y="76" text-anchor="middle" font-weight="800" fill="#d64545">太窄（-1%~2%）</text>
+    <text x="185" y="100" text-anchor="middle" fill="#47506b">价格正常晃动就把你扫出</text>
+    <text x="185" y="120" text-anchor="middle" fill="#7b8499" font-size="11.5">→ 高胜率假象，但赚不到大波段</text>
+    <text x="185" y="140" text-anchor="middle" fill="#7b8499" font-size="11.5">反复止损，手续费吃光利润</text>
+    <!-- 适中 -->
+    <rect x="350" y="50" width="290" height="105" rx="12" fill="#e9f7ef" stroke="#bfe6cf"/>
+    <text x="495" y="76" text-anchor="middle" font-weight="800" fill="#1f9d55">适中（与波动率匹配）</text>
+    <text x="495" y="100" text-anchor="middle" fill="#47506b">容得下噪声，扛得住趋势回撤</text>
+    <text x="495" y="120" text-anchor="middle" fill="#7b8499" font-size="11.5">→ 让利润奔跑，只截断真正的错误</text>
+    <text x="495" y="140" text-anchor="middle" fill="#7b8499" font-size="11.5">BTC 1h：3%~5% 起步合理</text>
+    <!-- 太宽 -->
+    <rect x="40" y="170" width="290" height="105" rx="12" fill="#fdf4e3" stroke="#eed9ae"/>
+    <text x="185" y="196" text-anchor="middle" font-weight="800" fill="#b7791f">太宽（-10%+）</text>
+    <text x="185" y="220" text-anchor="middle" fill="#47506b">单笔亏损大，一次黑天鹅重伤</text>
+    <text x="185" y="240" text-anchor="middle" fill="#7b8499" font-size="11.5">→ 形同虚设，等于没设</text>
+    <text x="185" y="260" text-anchor="middle" fill="#7b8499" font-size="11.5">crypto-trader 原版 -10% 就属此类</text>
+    <!-- 波动率 -->
+    <rect x="350" y="170" width="290" height="105" rx="12" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="495" y="196" text-anchor="middle" font-weight="800" fill="#3454d1">正确做法：ATR 自适应</text>
+    <text x="495" y="220" text-anchor="middle" fill="#47506b">止损 = ATR × N（N≈2-3）</text>
+    <text x="495" y="240" text-anchor="middle" fill="#7b8499" font-size="11.5">波动大自动放宽，波动小自动收紧</text>
+    <text x="495" y="260" text-anchor="middle" fill="#7b8499" font-size="11.5">不用拍脑袋定百分比</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 5-2</b> · 止损宽窄两难：太窄被噪声扫出，太宽形同虚设，正解是 ATR 自适应</div>
+</div>
+
+<h3 class="sub">ATR 止损怎么做</h3>
+<pre class="code"><span class="filename">ATR（平均真实波幅）止损 —— 让止损跟着波动走</span><span class="c"># 真实波幅 TR = max(high-low, |high-prev_close|, |low-prev_close|)</span>
+<span class="c"># ATR = TR 的 N 日均值（通常 14）</span>
+df[<span class="s">'atr'</span>] = df[<span class="s">'high'</span>].<span class="n">sub</span>(df[<span class="s">'low'</span>]) \
+    .<span class="n">combine</span>(df[<span class="s">'high'</span>].<span class="n">sub</span>(df[<span class="s">'close'</span>].shift(<span class="n">1</span>)).<span class="n">abs</span>(), <span class="n">max</span>) \
+    .<span class="n">combine</span>(df[<span class="s">'low'</span>].<span class="n">sub</span>(df[<span class="s">'close'</span>].shift(<span class="n">1</span>)).<span class="n">abs</span>(), <span class="n">max</span>) \
+    .rolling(<span class="n">14</span>).mean()
+
+<span class="c"># freqtrade 动态止损（每根K线回调）：</span>
+<span class="k">def</span> <span class="f">custom_stoploss</span>(self, pair, trade, current_time, current_rate, current_profit, **kwargs):
+    dataframe, _ = self.dp.<span class="f">ohlcv</span>(pair, self.timeframe)
+    atr = dataframe[<span class="s">'atr'</span>].iloc[-<span class="n">1</span>]
+    <span class="k">return</span> -<span class="n">2</span> * atr / current_rate  <span class="c"># 2 倍 ATR 的动态止损比例</span></pre>
+
+<h2 class="section"><span class="sec-no">3</span>追踪止损：让利润奔跑</h2>
+<div class="figure">
+<svg viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="260" fill="#ffffff"/>
+  <g font-size="12">
+    <text x="340" y="26" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">追踪止损：止损线跟着价格上移，锁住利润</text>
+    <polyline points="60,200 120,180 180,190 240,150 300,130 360,100 420,115 480,80 540,60 620,50" fill="none" stroke="#3454d1" stroke-width="2.4"/>
+    <!-- 固定止损 -->
+    <line x1="60" y1="200" x2="300" y2="200" stroke="#d64545" stroke-width="1.4" stroke-dasharray="6 4"/>
+    <line x1="60" y1="150" x2="620" y2="150" stroke="#b7791f" stroke-width="1.6" stroke-dasharray="6 4"/>
+    <!-- 阶梯状止损 -->
+    <polyline points="60,200 300,200 300,150 340,150 340,130 420,130 420,95 540,95 540,60 620,60" fill="none" stroke="#d64545" stroke-width="2"/>
+    <text x="52" y="154" fill="#d64545" font-weight="700">追踪止损线（上移）</text>
+    <text x="52" y="206" fill="#b7791f">固定止损（不动）</text>
+    <text x="340" y="246" text-anchor="middle" fill="#47506b">价格一路涨 → 止损线一路抬 → 最终回落时止盈离场，锁住大部分利润</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 5-3</b> · 追踪止损 vs 固定止损：前者让利润奔跑、锁定浮盈</div>
+</div>
+<p>freqtrade 配置：<code class="inline">trailing_stop: true</code> + <code class="inline">trailing_stop_positive</code>（盈利达到多少后启动）+ <code class="inline">trailing_stop_offset</code>（回撤多少触发）。</p>
+
+<h2 class="section"><span class="sec-no">4</span>仓位管理：每次买多少</h2>
+<table class="tbl">
+<thead><tr><th style="width:18%">方式</th><th style="width:34%">说明</th><th>特点</th><th>适合</th></tr></thead>
+<tbody>
+<tr><td>固定金额</td><td>每笔同额（crypto-trader：50 USDT）</td><td>简单，单笔风险可控可算</td><td>起步阶段（你在这里）</td></tr>
+<tr><td>固定比例</td><td>按总资金百分比（如 2%）</td><td>账户增长时自动加仓，复利</td><td>稳定盈利后</td></tr>
+<tr><td>凯利公式</td><td>f* = (bp−q)/b，按胜率盈亏比求最优</td><td>理论最优，实战需<b>打对折</b>（半凯利）</td><td>进阶；赌徒全仓凯利会破产</td></tr>
+</tbody>
+</table>
+
+<div class="callout tip">
+  <div class="co-title">💡 crypto-trader 的风险算术（自己算一遍）</div>
+  <p>固定 50U 仓位 × 5% 止损 = <b>单笔最多亏 2.5 USDT</b>。连续亏 5 笔 = 12.5U。<b>问题</b>：账户本金多少？如果本金 500U，12.5U 是 2.5%，扛得住；如果本金只有 100U，5 连亏就是 12.5%，要警惕。<b>仓位大小永远要和本金与心理承受力挂钩</b>。</p>
+</div>
+
+<h2 class="section"><span class="sec-no">5</span>组合层风控：三层防护</h2>
+<div class="figure">
+<svg viewBox="0 0 680 250" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="250" fill="#ffffff"/>
+  <text x="340" y="26" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">三层风控：单笔 → 单币 → 全账户</text>
+  <!-- 三环 -->
+  <circle cx="200" cy="140" r="62" fill="#fdeeee" stroke="#d64545" stroke-width="2"/>
+  <text x="200" y="130" text-anchor="middle" font-weight="800" fill="#d64545" font-size="13">第一层</text>
+  <text x="200" y="150" text-anchor="middle" fill="#47506b" font-size="12">单笔止损</text>
+  <text x="200" y="168" text-anchor="middle" fill="#7b8499" font-size="10.5">亏到 -5% 离场</text>
+  <circle cx="340" cy="140" r="62" fill="#fdf4e3" stroke="#b7791f" stroke-width="2"/>
+  <text x="340" y="130" text-anchor="middle" font-weight="800" fill="#b7791f" font-size="13">第二层</text>
+  <text x="340" y="150" text-anchor="middle" fill="#47506b" font-size="12">单币上限</text>
+  <text x="340" y="168" text-anchor="middle" fill="#7b8499" font-size="10.5">同一币不重仓</text>
+  <circle cx="480" cy="140" r="62" fill="#eaf0fe" stroke="#3454d1" stroke-width="2"/>
+  <text x="480" y="130" text-anchor="middle" font-weight="800" fill="#3454d1" font-size="13">第三层</text>
+  <text x="480" y="150" text-anchor="middle" fill="#47506b" font-size="12">总回撤熔断</text>
+  <text x="480" y="168" text-anchor="middle" fill="#7b8499" font-size="10.5">回撤到 X% 全停手</text>
+  <text x="340" y="230" text-anchor="middle" fill="#47506b" font-size="12">趋势策略的额外选项：震荡市「空仓」也是一种策略（可用市场状态过滤）</text>
+</svg>
+<div class="fig-cap"><b>图 5-4</b> · 组合层风控：从单笔到全账户的三层防护</div>
+</div>
+
+<h2 class="section"><span class="sec-no">6</span>项目映射：crypto-trader 的止损演进</h2>
+<table class="tbl">
+<thead><tr><th style="width:16%">版本</th><th style="width:18%">stoploss</th><th>判断</th></tr></thead>
+<tbody>
+<tr><td>原版</td><td>-0.10</td><td>BTC 1h 波动常超 5%，10% 止损几乎不会被触及 → <b>形同虚设</b>。一次黑天鹅能亏掉 10%，对 50U 单笔 = 5U。</td></tr>
+<tr><td>当前</td><td>-0.05</td><td>修复 review 时下调。仍属保守，但作为<b>起步值合理</b> —— 先跑起来，用回测统计被止损扫掉的笔数再微调。</td></tr>
+<tr><td>（进阶）</td><td>ATR×2</td><td>随波动自适应，不用拍脑袋 —— 建议 dry-run 稳定后试验对比。</td></tr>
+</tbody>
+</table>
+<div class="callout amber">
+  <div class="co-title">📌 判断止损合不合理的实操方法</div>
+  <ol>
+    <li>先看标的<b>波动率分布</b>（ATR / 收益率的 std）—— 止损至少是它的 2-3 倍。</li>
+    <li>再跑回测，统计<b>被止损扫掉的笔数占比</b>：若 &gt;40% 被止损离场，说明止损太紧或策略在震荡市乱开仓。</li>
+    <li>回测里故意把止损调宽/调窄对比，观察总收益和回撤如何权衡。</li>
+  </ol>
+</div>
+
+<h2 class="section"><span class="sec-no">7</span>实践任务</h2>
+<div class="task-box">
+<h3>动手做</h3>
+<ol>
+  <li>给同一策略配 -3% / -5% / -10% 三档止损，回测对比收益、回撤、胜率 —— 找到「最优区间」而非最优值。</li>
+  <li>统计回测中被止损的笔数占比：过高说明止损太紧或策略在震荡市乱开仓。</li>
+  <li>写一个 ATR×2 的动态止损版本，对比固定止损的表现。</li>
+  <li>算清楚 crypto-trader 的风险算术：50U × 5% = 2.5U 单笔风险；连续亏 5 笔占本金多少？</li>
+</ol>
+</div>
+
+<h2 class="section"><span class="sec-no">8</span>自查清单</h2>
+<div class="task-box">
+<ul class="checklist done">
+  <li>能解释为什么 -10% 止损对 BTC 1h 太宽（波动率匹配）</li>
+  <li>知道固定止损与 ATR 止损的区别与各自场景</li>
+  <li>会算单笔最大亏损金额并判断其对本金的影响</li>
+  <li>理解「止损被频繁触发」意味着什么（噪声/策略错）</li>
+  <li>知道追踪止损如何锁住利润</li>
+</ul>
+</div>
+
+<div class="callout tip">
+  <div class="co-title">➡️ 下一步</div>
+  <p>护栏装好了。接下来是重头戏 —— <b>步骤 ⑥ FreqAI 与机器学习</b>，你项目的操作手册 + 踩坑全记录。</p>
+</div>
+
+<div class="foot">STEP ⑤ · 风控与止损｜文档：https://www.freqtrade.io/en/stable/stoploss/</div>
+</main>
+<nav class="pagenav">
+  <a href="04-经典策略与K线.html">← ④ 经典策略与K线</a>
+  <a href="06-FreqAI与机器学习.html" class="next">⑥ FreqAI 与机器学习 →</a>
+</nav>
+</div>
+</div>
+</body>
+</html>

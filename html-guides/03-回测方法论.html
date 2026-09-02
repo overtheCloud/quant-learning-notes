@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>③ 回测方法论 · 图解讲义</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body class="with-sidebar">
+<aside class="sidebar" aria-label="全篇导航">
+  <div class="sb-brand"><div class="sb-t">📚 量化 · 图解讲义</div><div class="sb-s">crypto-trader 配套<br>01-07 按顺序学 · 随时互跳</div></div>
+  <nav class="sb-nav">
+    <a class="sb-item" href="00-index.html"><span class="sb-idx" style="background:#1c2333">00</span><span class="sb-txt">总览与使用</span></a>
+    <a class="sb-item" href="01-量化基础.html"><span class="sb-idx" style="background:#3454d1">01</span><span class="sb-txt">量化基础</span></a>
+    <a class="sb-item" href="02-freqtrade入门.html"><span class="sb-idx" style="background:#1f9d55">02</span><span class="sb-txt">freqtrade 入门</span></a>
+    <a class="sb-item cur" href="03-回测方法论.html"><span class="sb-idx" style="background:#b7791f">03</span><span class="sb-txt">回测方法论</span><span class="sb-go">›</span></a>
+    <a class="sb-item" href="04-经典策略与K线.html"><span class="sb-idx" style="background:#6d4fc1">04</span><span class="sb-txt">经典策略与 K 线</span></a>
+    <a class="sb-item" href="05-风控与止损.html"><span class="sb-idx" style="background:#d64545">05</span><span class="sb-txt">风控与止损</span></a>
+    <a class="sb-item" href="06-FreqAI与机器学习.html"><span class="sb-idx" style="background:#0f8a8a">06</span><span class="sb-txt">FreqAI 与机器学习</span></a>
+    <a class="sb-item" href="07-hyperopt参数优化.html"><span class="sb-idx" style="background:#3454d1">07</span><span class="sb-txt">hyperopt 参数优化</span></a>
+    <a class="sb-item" href="08-书单与拓展.html"><span class="sb-idx" style="background:#7b8499">08</span><span class="sb-txt">书单与拓展</span></a>
+  </nav>
+  <div class="sb-foot">浏览器 Ctrl+P 可导出 PDF<br>当前共 9 篇</div>
+</aside>
+
+<nav class="sb-topbar" aria-label="全篇导航">
+  <a href="00-index.html">00 总览</a>
+  <a href="01-量化基础.html">01 量化基础</a>
+  <a href="02-freqtrade入门.html">02 freqtrade</a>
+  <a class="cur" href="03-回测方法论.html">03 回测</a>
+  <a href="04-经典策略与K线.html">04 策略·K线</a>
+  <a href="05-风控与止损.html">05 风控</a>
+  <a href="06-FreqAI与机器学习.html">06 FreqAI</a>
+  <a href="07-hyperopt参数优化.html">07 hyperopt</a>
+  <a href="08-书单与拓展.html">08 书单</a>
+</nav>
+
+<div class="container">
+<div class="page">
+<header class="hero">
+  <span class="step-tag">STEP ③ · 批判性技能</span>
+  <h1>回测方法论：读懂报表，识别谎言</h1>
+  <p class="goal">目标：学会<b>读 freqtrade 回测报表</b>，并掌握「回测为什么可能不可信」的批判性检查 —— 这是量化最核心的人类技能，比写策略更重要。对 crypto-trader 尤其关键：<b>情绪特征在回测中恒为 0，回测只验证了技术面</b>。</p>
+</header>
+<main class="content">
+
+<h2 class="section"><span class="sec-no">1</span>回测报表：一张图读懂</h2>
+<p>freqtrade 回测结束会输出一张结果表。先看懂每个指标在问什么：</p>
+
+<div class="figure">
+<svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="320" fill="#ffffff"/>
+  <text x="340" y="26" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">回测报表关键指标：它们在问什么问题</text>
+  <!-- 四个核心卡 -->
+  <g font-size="12.5">
+    <rect x="30" y="50" width="145" height="110" rx="12" fill="#fdf4e3" stroke="#eed9ae"/>
+    <text x="102" y="74" text-anchor="middle" font-weight="800" fill="#b7791f">总收益</text>
+    <text x="102" y="94" text-anchor="middle" fill="#47506b">期末-期初</text>
+    <text x="102" y="116" text-anchor="middle" fill="#7b8499" font-size="11">先看是否&gt;0</text>
+    <text x="102" y="134" text-anchor="middle" fill="#7b8499" font-size="11">但不代表可实盘</text>
+
+    <rect x="195" y="50" width="145" height="110" rx="12" fill="#fdeeee" stroke="#f3caca"/>
+    <text x="267" y="74" text-anchor="middle" font-weight="800" fill="#d64545">最大回撤</text>
+    <text x="267" y="94" text-anchor="middle" fill="#47506b">峰值→谷底</text>
+    <text x="267" y="116" text-anchor="middle" fill="#7b8499" font-size="11">⚠️最重要的风险指标</text>
+    <text x="267" y="134" text-anchor="middle" fill="#7b8499" font-size="11">决定了你能不能拿住</text>
+
+    <rect x="360" y="50" width="145" height="110" rx="12" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="432" y="74" text-anchor="middle" font-weight="800" fill="#3454d1">夏普 / Sortino</text>
+    <text x="432" y="94" text-anchor="middle" fill="#47506b">收益÷波动</text>
+    <text x="432" y="116" text-anchor="middle" fill="#7b8499" font-size="11">赚得稳不稳</text>
+    <text x="432" y="134" text-anchor="middle" fill="#7b8499" font-size="11">Sortino 更贴加密</text>
+
+    <rect x="525" y="50" width="145" height="110" rx="12" fill="#e9f7ef" stroke="#bfe6cf"/>
+    <text x="597" y="74" text-anchor="middle" font-weight="800" fill="#1f9d55">胜率+盈亏比</text>
+    <text x="597" y="94" text-anchor="middle" fill="#47506b">赢几笔×赢多少</text>
+    <text x="597" y="116" text-anchor="middle" fill="#7b8499" font-size="11">组合才说明问题</text>
+
+    <!-- 核心洞察 -->
+    <rect x="30" y="185" width="620" height="110" rx="14" fill="#f1edfb" stroke="#ddd2f4"/>
+    <text x="340" y="212" text-anchor="middle" font-weight="800" fill="#6d4fc1" font-size="13.5">为什么「高胜率 + 低盈亏比」也可能亏钱？</text>
+    <text x="340" y="238" text-anchor="middle" fill="#47506b" font-size="12.5">例：胜率 90%，每笔赢 1 元；剩下 10% 每笔亏 20 元</text>
+    <text x="340" y="260" text-anchor="middle" fill="#47506b" font-size="12.5">90×(+1) − 10×(−20) = 90 − 200 = <tspan font-weight="800" fill="#d64545">−110 元 → 稳定亏钱</tspan></text>
+    <text x="340" y="284" text-anchor="middle" fill="#7b8499" font-size="11.5">赚钱公式其实是：期望 = 胜率×平均盈利 − 败率×平均亏损 &gt; 0</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 3-1</b> · 指标速查 + 「高胜率也会亏钱」的核心直觉</div>
+</div>
+
+<h3 class="sub">指标健康参考（加密现货、日频-小时频）</h3>
+<table class="tbl">
+<thead><tr><th style="width:20%">指标</th><th style="width:30%">问什么</th><th>参考范围</th></tr></thead>
+<tbody>
+<tr><td>交易笔数</td><td>样本量够不够</td><td><b>至少 &gt;50 笔</b>，否则统计无意义</td></tr>
+<tr><td>胜率</td><td>赢钱的比例</td><td>40-60% 正常（趋势策略常偏低）</td></tr>
+<tr><td>盈亏比 Profit factor</td><td>总盈利÷总亏损</td><td>&gt;1 才赚；&gt;1.5 较健康</td></tr>
+<tr><td>最大回撤</td><td>最惨一跤多深</td><td>&lt;20% 较稳；结合你的心理承受力</td></tr>
+<tr><td>夏普</td><td>单位波动的超额收益</td><td>&gt;1 不错，&gt;2 优秀</td></tr>
+<tr><td>Sortino</td><td>只惩罚下行波动</td><td>加密市场比夏普更贴实际</td></tr>
+<tr><td>每笔期望</td><td>长期做每笔平均赚多少</td><td>必须为正</td></tr>
+</tbody>
+</table>
+
+<h2 class="section"><span class="sec-no">2</span>回测可信的四个前提</h2>
+<div class="figure">
+<svg viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="260" fill="#ffffff"/>
+  <text x="340" y="26" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">回测结果可信的四个前提（缺一不可）</text>
+  <g font-size="12.5">
+    <!-- 1 -->
+    <rect x="30" y="48" width="300" height="80" rx="12" fill="#e9f7ef" stroke="#bfe6cf"/>
+    <text x="48" y="72" font-weight="800" fill="#1f9d55">① 无未来函数</text>
+    <text x="48" y="94" fill="#47506b">信号只用「当时可得」的数据</text>
+    <text x="48" y="114" fill="#7b8499" font-size="11">你的 &amp;-target 坑就违反这条</text>
+    <!-- 2 -->
+    <rect x="350" y="48" width="300" height="80" rx="12" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="368" y="72" font-weight="800" fill="#3454d1">② 样本够长够多</text>
+    <text x="368" y="94" fill="#47506b">交易笔数太少则统计无意义</text>
+    <text x="368" y="114" fill="#7b8499" font-size="11">&lt;50 笔的结果等于噪声</text>
+    <!-- 3 -->
+    <rect x="30" y="142" width="300" height="80" rx="12" fill="#fdf4e3" stroke="#eed9ae"/>
+    <text x="48" y="166" font-weight="800" fill="#b7791f">③ 含交易成本</text>
+    <text x="48" y="188" fill="#47506b">手续费 + 滑点必须进回测</text>
+    <text x="48" y="208" fill="#7b8499" font-size="11">freqtrade 有 slippage/手续费配置</text>
+    <!-- 4 -->
+    <rect x="350" y="142" width="300" height="80" rx="12" fill="#f1edfb" stroke="#ddd2f4"/>
+    <text x="368" y="166" font-weight="800" fill="#6d4fc1">④ 跨行情验证</text>
+    <text x="368" y="188" fill="#47506b">牛/熊/震荡市分开看</text>
+    <text x="368" y="208" fill="#7b8499" font-size="11">只挑赚钱那段跑 = 自欺</text>
+  </g>
+  <!-- 底部 -->
+  <rect x="30" y="238" width="620" height="2" fill="#e4e8f0"/>
+  <text x="340" y="255" text-anchor="middle" fill="#7b8499" font-size="11.5">四条全过 → 回测结果才配叫「证据」；任何一条不过 → 结果作废或打折扣</text>
+</svg>
+<div class="fig-cap"><b>图 3-2</b> · 回测可信四前提：检查清单式记忆</div>
+</div>
+
+<div class="callout warn">
+  <div class="co-title">⚠️ 交易成本的杀伤力（新手最易低估）</div>
+  <p>假设现货手续费 0.1%（Binance 现贷），一次完整的买+卖 = 0.2% 成本。一年交易 200 次 = 40% 成本。一个「回测年化 45%」的策略，扣掉成本可能只剩 5%。<b>加密永续合约费率高、滑点大，更要命</b>。freqtrade 里务必确认手续费、滑点都开了真实值。</p>
+</div>
+
+<h2 class="section"><span class="sec-no">3</span>三大统计陷阱的分类学</h2>
+<p>STEP ① 已经认识了它们，这里给一个可记忆的分类框架 —— 三类偏差本质是<b>三类「信息泄漏」</b>：</p>
+
+<div class="figure">
+<svg viewBox="0 0 680 250" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="250" fill="#ffffff"/>
+  <text x="340" y="26" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">回测谎言分类学：三类泄漏</text>
+  <!-- 中心 -->
+  <rect x="255" y="100" width="170" height="44" rx="22" fill="#1c2333"/>
+  <text x="340" y="128" text-anchor="middle" font-size="13.5" font-weight="800" fill="#fff">信息泄漏 = 回测谎言</text>
+  <!-- 三支 -->
+  <line x1="300" y1="100" x2="140" y2="66" stroke="#7b8499" stroke-width="1.5"/>
+  <line x1="340" y1="100" x2="340" y2="66" stroke="#7b8499" stroke-width="1.5"/>
+  <line x1="380" y1="100" x2="540" y2="66" stroke="#7b8499" stroke-width="1.5"/>
+  <!-- 左：信号泄漏 -->
+  <rect x="40" y="30" width="200" height="58" rx="12" fill="#fdeeee" stroke="#f3caca"/>
+  <text x="140" y="53" text-anchor="middle" font-weight="800" fill="#d64545">信号泄漏</text>
+  <text x="140" y="74" text-anchor="middle" fill="#47506b" font-size="12">未来函数 → 用了未来数据</text>
+  <!-- 中：参数泄漏 -->
+  <rect x="250" y="30" width="180" height="58" rx="12" fill="#fdf4e3" stroke="#eed9ae"/>
+  <text x="340" y="53" text-anchor="middle" font-weight="800" fill="#b7791f">参数泄漏</text>
+  <text x="340" y="74" text-anchor="middle" fill="#47506b" font-size="12">过拟合 → 参数背了答案</text>
+  <!-- 右：样本泄漏 -->
+  <rect x="460" y="30" width="200" height="58" rx="12" fill="#f1edfb" stroke="#ddd2f4"/>
+  <text x="560" y="53" text-anchor="middle" font-weight="800" fill="#6d4fc1">样本泄漏</text>
+  <text x="560" y="74" text-anchor="middle" fill="#47506b" font-size="12">幸存者偏差 → 只测活着的币</text>
+  <!-- 底部三卡 -->
+  <g font-size="12">
+    <rect x="30" y="168" width="200" height="62" rx="10" fill="#f6f8fc" stroke="#e4e8f0"/>
+    <text x="130" y="190" text-anchor="middle" fill="#47506b">特征/标签用到未来</text>
+    <text x="130" y="208" text-anchor="middle" fill="#7b8499" font-size="11">加密版：&amp;-target 训练标签当信号</text>
+    <rect x="250" y="168" width="180" height="62" rx="10" fill="#f6f8fc" stroke="#e4e8f0"/>
+    <text x="340" y="190" text-anchor="middle" fill="#47506b">反复调参直到回测漂亮</text>
+    <text x="340" y="208" text-anchor="middle" fill="#7b8499" font-size="11">hyperopt 轮数越多越危险</text>
+    <rect x="460" y="168" width="200" height="62" rx="10" fill="#f6f8fc" stroke="#e4e8f0"/>
+    <text x="560" y="190" text-anchor="middle" fill="#47506b">只看现存币种 / 已平仓</text>
+    <text x="560" y="208" text-anchor="middle" fill="#7b8499" font-size="11">忽略已下架币 = 高估收益</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 3-3</b> · 三大统计陷阱的本质统一为「信息泄漏」：信号 / 参数 / 样本</div>
+</div>
+
+<h2 class="section"><span class="sec-no">4</span>本项目特殊盲区：情绪特征恒为 0</h2>
+<p>crypto-trader 的情绪库（SQLite）<b>没有历史数据</b> —— 情绪服务从你启动那天才开始积累。因此：</p>
+
+<div class="figure">
+<svg viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="200" fill="#ffffff"/>
+  <g font-size="12.5">
+    <!-- 回测 -->
+    <rect x="40" y="60" width="280" height="90" rx="12" fill="#fdf4e3" stroke="#eed9ae"/>
+    <text x="180" y="86" text-anchor="middle" font-weight="800" fill="#b7791f">回测时</text>
+    <text x="180" y="108" text-anchor="middle" fill="#47506b">情绪库为空 → 情绪特征 = 0（中性）</text>
+    <text x="180" y="130" text-anchor="middle" fill="#7b8499" font-size="11.5">回测测的是「纯技术面」策略</text>
+    <!-- 实盘 -->
+    <rect x="360" y="60" width="280" height="90" rx="12" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="500" y="86" text-anchor="middle" font-weight="800" fill="#3454d1">实盘时</text>
+    <text x="500" y="108" text-anchor="middle" fill="#47506b">情绪特征有真实值（-1~+1）</text>
+    <text x="500" y="130" text-anchor="middle" fill="#7b8499" font-size="11.5">模型看到的分布和回测不同</text>
+    <line x1="320" y1="105" x2="356" y2="105" stroke="#7b8499" stroke-width="1.6"/>
+    <text x="338" y="96" text-anchor="middle" font-size="11" fill="#d64545">不一致!</text>
+  </g>
+  <rect x="40" y="170" width="600" height="26" rx="7" fill="#fdeeee" stroke="#f3caca"/>
+  <text x="340" y="187" text-anchor="middle" font-size="12" fill="#d64545">结论：情绪增强的贡献「无法回测验证」，只能靠实盘 dry-run 的 A/B 对比评估</text>
+</svg>
+<div class="fig-cap"><b>图 3-4</b> · crypto-trader 的回测盲区：回测与实盘的情绪特征分布不一致</div>
+</div>
+
+<div class="callout warn">
+  <div class="co-title">⚠️ 别被「回测很好」骗了</div>
+  <p>如果未来你的 crypto-trader 回测很漂亮，请记住：<b>它压根没测情绪那部分</b>。回测收益全部来自技术面 + LightGBM。情绪是否真的加分，只能看实盘对比 —— 这也是为什么 STEP ⑥ 强调先跑通、再谈优化的原因。</p>
+</div>
+
+<h2 class="section"><span class="sec-no">5</span>项目映射：修复前后的对比验证</h2>
+<p>回顾 crypto-trader 的 freqaimodel 修复（详见 06），它在回测上的表现是：</p>
+<ul>
+  <li><b>修复前</b>：若走回归模型 + 分类信号 → 回测 0 笔交易（信号永不触发）</li>
+  <li><b>修复后验证</b>：交易笔数<b>非零且合理</b>；<code class="inline">plot_feature_importances</code> 能出图</li>
+  <li><b>下一步</b>：回测对比「修复前 vs 修复后」的行为差异，确认修复有效</li>
+</ul>
+
+<h2 class="section"><span class="sec-no">6</span>实践任务</h2>
+<div class="task-box">
+<h3>动手做（最有趣的一个实验）</h3>
+<ol>
+  <li>跑通 crypto-trader 的回测，记录：交易笔数 / 胜率 / 最大回撤 / 夏普。</li>
+  <li><b>故意制造一个未来函数</b>：把某个特征改成用「未来 close」计算，观察回测收益的变化 —— 你会直观看到「假收益」能有多夸张。这是理解未来函数杀伤力最快的一课。</li>
+  <li>把回测区间切成牛市段 vs 震荡段各跑一次，对比行为差异（呼应 04 的「命门」）。</li>
+  <li>确认你的回测配置里手续费、滑点已按真实值设置。</li>
+</ol>
+</div>
+
+<h2 class="section"><span class="sec-no">7</span>自查清单</h2>
+<div class="task-box">
+<ul class="checklist done">
+  <li>能一句话说清夏普、回撤、盈亏比各自回答什么问题</li>
+  <li>理解「高胜率 + 低盈亏比也会亏钱」的算术</li>
+  <li>知道 50 笔以下的回测为什么不可信</li>
+  <li>能列出本项目回测盲区：情绪特征未参与（恒为 0）</li>
+  <li>会主动检查策略是否含未来函数</li>
+</ul>
+</div>
+
+<div class="callout tip">
+  <div class="co-title">➡️ 下一步</div>
+  <p>会读报表了，接下来 <b>步骤 ④</b> 亲手写策略并认识 K 线 —— 理解 crypto-trader 的「趋势/动量 DNA」和震荡市命门。</p>
+</div>
+
+<div class="foot">STEP ③ · 回测方法论｜文档：https://www.freqtrade.io/en/stable/backtesting/</div>
+</main>
+<nav class="pagenav">
+  <a href="02-freqtrade入门.html">← ② freqtrade 入门</a>
+  <a href="04-经典策略与K线.html" class="next">④ 经典策略与K线 →</a>
+</nav>
+</div>
+</div>
+</body>
+</html>

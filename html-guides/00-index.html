@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>量化学习图解讲义 · 总览</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body class="with-sidebar">
+<aside class="sidebar" aria-label="全篇导航">
+  <div class="sb-brand"><div class="sb-t">📚 量化 · 图解讲义</div><div class="sb-s">crypto-trader 配套<br>01-07 按顺序学 · 随时互跳</div></div>
+  <nav class="sb-nav">
+    <a class="sb-item cur" href="00-index.html"><span class="sb-idx" style="background:#1c2333">00</span><span class="sb-txt">总览与使用</span><span class="sb-go">›</span></a>
+    <a class="sb-item" href="01-量化基础.html"><span class="sb-idx" style="background:#3454d1">01</span><span class="sb-txt">量化基础</span></a>
+    <a class="sb-item" href="02-freqtrade入门.html"><span class="sb-idx" style="background:#1f9d55">02</span><span class="sb-txt">freqtrade 入门</span></a>
+    <a class="sb-item" href="03-回测方法论.html"><span class="sb-idx" style="background:#b7791f">03</span><span class="sb-txt">回测方法论</span></a>
+    <a class="sb-item" href="04-经典策略与K线.html"><span class="sb-idx" style="background:#6d4fc1">04</span><span class="sb-txt">经典策略与 K 线</span></a>
+    <a class="sb-item" href="05-风控与止损.html"><span class="sb-idx" style="background:#d64545">05</span><span class="sb-txt">风控与止损</span></a>
+    <a class="sb-item" href="06-FreqAI与机器学习.html"><span class="sb-idx" style="background:#0f8a8a">06</span><span class="sb-txt">FreqAI 与机器学习</span></a>
+    <a class="sb-item" href="07-hyperopt参数优化.html"><span class="sb-idx" style="background:#3454d1">07</span><span class="sb-txt">hyperopt 参数优化</span></a>
+    <a class="sb-item" href="08-书单与拓展.html"><span class="sb-idx" style="background:#7b8499">08</span><span class="sb-txt">书单与拓展</span></a>
+  </nav>
+  <div class="sb-foot">浏览器 Ctrl+P 可导出 PDF<br>当前共 9 篇</div>
+</aside>
+
+<nav class="sb-topbar" aria-label="全篇导航">
+  <a class="cur" href="00-index.html">00 总览</a>
+  <a href="01-量化基础.html">01 量化基础</a>
+  <a href="02-freqtrade入门.html">02 freqtrade</a>
+  <a href="03-回测方法论.html">03 回测</a>
+  <a href="04-经典策略与K线.html">04 策略·K线</a>
+  <a href="05-风控与止损.html">05 风控</a>
+  <a href="06-FreqAI与机器学习.html">06 FreqAI</a>
+  <a href="07-hyperopt参数优化.html">07 hyperopt</a>
+  <a href="08-书单与拓展.html">08 书单</a>
+</nav>
+
+<div class="container">
+<div class="page">
+<header class="hero">
+  <span class="step-tag">🧭 总览</span>
+  <h1>量化交易学习 · 图解讲义</h1>
+  <p class="goal">围绕 <b>crypto-trader</b>（freqtrade + FreqAI/LightGBM + DeepSeek 情绪）项目的系统化学习材料。<b>本套讲义为「图解加深版」</b>：每篇用 2-4 张图把概念讲透，配合代码、公式与自查清单，可直接在浏览器阅读、打印或导出 PDF。</p>
+</header>
+<main class="content">
+
+<h2 class="section"><span class="sec-no">A</span>学习路线全景</h2>
+<p class="lead">七步走 + K线贯穿 + 书单。每一步都对应你 crypto-trader 项目的一个真实环节。</p>
+<div class="figure">
+<svg viewBox="0 0 680 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="学习路线全景图">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#7b8499"/></marker>
+  </defs>
+  <g font-family="-apple-system,'PingFang SC','Microsoft YaHei',sans-serif" font-size="13">
+    <!-- 步骤节点 -->
+    <g>
+      <rect x="20"  y="60" width="150" height="74" rx="12" fill="#eaf0fe" stroke="#cdd9f8"/>
+      <text x="95" y="90" text-anchor="middle" font-weight="700" fill="#3454d1">① 量化基础</text>
+      <text x="95" y="112" text-anchor="middle" fill="#47506b">策略·数据·回测</text>
+    </g>
+    <g>
+      <rect x="190" y="60" width="150" height="74" rx="12" fill="#e9f7ef" stroke="#bfe6cf"/>
+      <text x="265" y="90" text-anchor="middle" font-weight="700" fill="#1f9d55">② freqtrade 入门</text>
+      <text x="265" y="112" text-anchor="middle" fill="#47506b">框架·回调·配置</text>
+    </g>
+    <g>
+      <rect x="360" y="60" width="150" height="74" rx="12" fill="#fdf4e3" stroke="#eed9ae"/>
+      <text x="435" y="90" text-anchor="middle" font-weight="700" fill="#b7791f">③ 回测方法论</text>
+      <text x="435" y="112" text-anchor="middle" fill="#47506b">报表·可信度</text>
+    </g>
+    <g>
+      <rect x="530" y="60" width="150" height="74" rx="12" fill="#f1edfb" stroke="#ddd2f4"/>
+      <text x="605" y="90" text-anchor="middle" font-weight="700" fill="#6d4fc1">④ 策略与K线</text>
+      <text x="605" y="112" text-anchor="middle" fill="#47506b">趋势·回归·形态</text>
+    </g>
+    <!-- 箭头连接 -->
+    <line x1="170" y1="97" x2="186" y2="97" stroke="#7b8499" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="340" y1="97" x2="356" y2="97" stroke="#7b8499" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="510" y1="97" x2="526" y2="97" stroke="#7b8499" stroke-width="1.6" marker-end="url(#arr)"/>
+    <!-- 底部步骤 -->
+    <g>
+      <rect x="20"  y="158" width="150" height="74" rx="12" fill="#fdeeee" stroke="#f3caca"/>
+      <text x="95" y="188" text-anchor="middle" font-weight="700" fill="#d64545">⑤ 风控与止损</text>
+      <text x="95" y="210" text-anchor="middle" fill="#47506b">活得久 > 赚得快</text>
+    </g>
+    <g>
+      <rect x="190" y="158" width="150" height="74" rx="12" fill="#eaf0fe" stroke="#cdd9f8"/>
+      <text x="265" y="188" text-anchor="middle" font-weight="700" fill="#3454d1">⑥ FreqAI 核心</text>
+      <text x="265" y="210" text-anchor="middle" fill="#47506b">ML 管线·重点</text>
+    </g>
+    <g>
+      <rect x="360" y="158" width="150" height="74" rx="12" fill="#e9f7ef" stroke="#bfe6cf"/>
+      <text x="435" y="188" text-anchor="middle" font-weight="700" fill="#1f9d55">⑦ hyperopt</text>
+      <text x="435" y="210" text-anchor="middle" fill="#47506b">参数优化·防过拟合</text>
+    </g>
+    <g>
+      <rect x="530" y="158" width="150" height="74" rx="12" fill="#e4f6f6" stroke="#bfe2e2"/>
+      <text x="605" y="188" text-anchor="middle" font-weight="700" fill="#0f8a8a">⑧ 书单拓展</text>
+      <text x="605" y="210" text-anchor="middle" fill="#47506b">经典书籍·资源</text>
+    </g>
+    <line x1="170" y1="195" x2="186" y2="195" stroke="#7b8499" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="340" y1="195" x2="356" y2="195" stroke="#7b8499" stroke-width="1.6" marker-end="url(#arr)"/>
+    <line x1="510" y1="195" x2="526" y2="195" stroke="#7b8499" stroke-width="1.6" marker-end="url(#arr)"/>
+    <text x="605" y="30" text-anchor="middle" font-size="15" font-weight="800" fill="#1c2333">量化学习路线</text>
+    <text x="605" y="47" text-anchor="middle" class="svg-sub">K 线不单独占一步 → 数据结构在①，形态在④</text>
+  </g>
+</svg>
+</div>
+
+<div class="callout tip">
+  <div class="co-title">✅ 你现在的位置</div>
+  <p>你的 crypto-trader 已经处在 <b>步骤 ⑥（FreqAI）</b>。前 5 步概念需要回头补——尤其「未来函数」和「止损原理」与你踩过的坑直接相关。建议：<b>06 必读 → 03 与 01 优先补 → 04 掌握命门 → 05 设好止损</b>。</p>
+</div>
+
+<h2 class="section"><span class="sec-no">B</span>各篇导航</h2>
+<div class="cards">
+  <a class="card" href="01-量化基础.html" style="text-decoration:none;color:inherit;display:block">
+    <h4><span class="dot" style="background:#3454d1"></span>① 量化基础</h4>
+    <p>策略是什么、回测是什么、为什么回测会骗人（未来函数 / 过拟合 / 幸存者偏差）。</p>
+    <span class="tag">配图：OHLCV · 未来函数示意 · 回测工作流</span>
+  </a>
+  <a class="card" href="02-freqtrade入门.html" style="text-decoration:none;color:inherit;display:block">
+    <h4><span class="dot" style="background:#1f9d55"></span>② freqtrade 入门</h4>
+    <p>策略生命周期三回调、config 骨架、常用命令、dry-run 与实盘。</p>
+    <span class="tag">配图：回调时序 · config 结构</span>
+  </a>
+  <a class="card" href="03-回测方法论.html" style="text-decoration:none;color:inherit;display:block">
+    <h4><span class="dot" style="background:#b7791f"></span>③ 回测方法论</h4>
+    <p>读懂报表指标、回测可信四前提、三大统计陷阱、情绪特征回测恒为 0 的盲区。</p>
+    <span class="tag">配图：指标速查 · 偏差分类树</span>
+  </a>
+  <a class="card" href="04-经典策略与K线.html" style="text-decoration:none;color:inherit;display:block">
+    <h4><span class="dot" style="background:#6d4fc1"></span>④ 经典策略与 K 线</h4>
+    <p>K 线解剖与形态量化、趋势 vs 回归两大范式、你项目的震荡市命门。</p>
+    <span class="tag">配图：K线解剖 · 形态 · 两范式行情对比</span>
+  </a>
+  <a class="card" href="05-风控与止损.html" style="text-decoration:none;color:inherit;display:block">
+    <h4><span class="dot" style="background:#d64545"></span>⑤ 风控与止损</h4>
+    <p>止损宽度与波动率匹配、追踪止损、仓位管理、组合层风控、ATR 止损。</p>
+    <span class="tag">配图：止损原理 · 宽窄两难曲线</span>
+  </a>
+  <a class="card" href="06-FreqAI与机器学习.html" style="text-decoration:none;color:inherit;display:block">
+    <h4><span class="dot" style="background:#3454d1"></span>⑥ FreqAI 与机器学习</h4>
+    <p>walk-forward 重训、freqaimodel 分类 vs 回归、特征工程、LLM 分工。全套核心 + 踩坑附录。</p>
+    <span class="tag">配图：walk-forward · 模型决策 · 排查链</span>
+  </a>
+  <a class="card" href="07-hyperopt参数优化.html" style="text-decoration:none;color:inherit;display:block">
+    <h4><span class="dot" style="background:#0f8a8a"></span>⑦ hyperopt 参数优化</h4>
+    <p>自动搜索超参、损失函数、三大坑、与 FreqAI 的适用边界。</p>
+    <span class="tag">配图：优化循环 · 训练/验证划分</span>
+  </a>
+  <a class="card" href="08-书单与拓展.html" style="text-decoration:none;color:inherit;display:block">
+    <h4><span class="dot" style="background:#7b8499"></span>⑧ 书单与拓展</h4>
+    <p>四本经典书 + 免费资源 + 为什么别信「AI 炒股大赛」收益率。</p>
+    <span class="tag">配图：书单定位 · 大赛统计陷阱</span>
+  </a>
+</div>
+
+<h2 class="section"><span class="sec-no">C</span>使用建议</h2>
+<div class="cards">
+  <div class="card"><h4><span class="dot" style="background:#1f9d55"></span>阅读顺序</h4><p>没耐心的最短路径：<b>06 → 03 → 01 → 05 → 04</b>，最后 07/08 按需。</p></div>
+  <div class="card"><h4><span class="dot" style="background:#3454d1"></span>打印 / PDF</h4><p>浏览器打开任意一篇 → <code class="inline">Ctrl+P</code> → 另存为 PDF。SVG 图为矢量，放大不糊。</p></div>
+  <div class="card"><h4><span class="dot" style="background:#b7791f"></span>配合实操</h4><p>每篇末尾「实践任务」在 WSL2 的 crypto-trader 环境里做，效果最好。</p></div>
+  <div class="card"><h4><span class="dot" style="background:#6d4fc1"></span>关联项目</h4><p>每篇「项目映射」标注了与你代码库的真实对应点，先读对应代码再读正文。</p></div>
+</div>
+
+<div class="callout warn">
+  <div class="co-title">⚠️ 四条核心原则（先刻进脑子）</div>
+  <ol>
+    <li><b>一切结论以自己回测为准</b> —— 一个策略的价值 = 你自己跑出来的回测，不是别人的收益截图。</li>
+    <li><b>别信只给结果不给代码的「AI 炒股大赛」收益率</b> —— 前视偏差、过拟合、幸存者偏差、短期排名激励，四个陷阱通用。</li>
+    <li><b>K 线形态当特征用、当风控辅助用，别当圣杯</b> —— 多数研究不支持单靠形态有显著超额收益。</li>
+    <li><b>先修对 Bug，再谈优化</b> —— 你的 freqaimodel 已修好（见 06），在可信回测的地基上才能谈状态识别、hyperopt。</li>
+  </ol>
+</div>
+
+<div class="foot">配套项目 crypto-trader（freqtrade 2026.7 + FreqAI/LightGBM + DeepSeek 情绪）· 2026-09-02</div>
+</main>
+<nav class="pagenav">
+  <a href="01-量化基础.html" class="next">开始学习 → ① 量化基础</a>
+</nav>
+</div>
+</div>
+</body>
+</html>
