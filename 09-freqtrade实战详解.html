@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⑨ freqtrade 实战详解 · 从命令行到 dry-run</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body class="with-sidebar">
+<aside class="sidebar" aria-label="全篇导航">
+  <div class="sb-brand"><div class="sb-t">📚 量化 · 图解讲义</div><div class="sb-s">crypto-trader 配套<br>01-07 按顺序学 · 随时互跳</div></div>
+  <nav class="sb-nav">
+    <a class="sb-item" href="00-index.html"><span class="sb-idx" style="background:#1c2333">00</span><span class="sb-txt">总览与使用</span></a>
+    <a class="sb-item" href="01-量化基础.html"><span class="sb-idx" style="background:#3454d1">01</span><span class="sb-txt">量化基础</span></a>
+    <a class="sb-item" href="02-freqtrade入门.html"><span class="sb-idx" style="background:#1f9d55">02</span><span class="sb-txt">freqtrade 入门</span></a>
+    <a class="sb-item" href="03-回测方法论.html"><span class="sb-idx" style="background:#b7791f">03</span><span class="sb-txt">回测方法论</span></a>
+    <a class="sb-item" href="04-经典策略与K线.html"><span class="sb-idx" style="background:#6d4fc1">04</span><span class="sb-txt">经典策略与 K 线</span></a>
+    <a class="sb-item" href="05-风控与止损.html"><span class="sb-idx" style="background:#d64545">05</span><span class="sb-txt">风控与止损</span></a>
+    <a class="sb-item" href="06-FreqAI与机器学习.html"><span class="sb-idx" style="background:#0f8a8a">06</span><span class="sb-txt">FreqAI 与机器学习</span></a>
+    <a class="sb-item" href="07-hyperopt参数优化.html"><span class="sb-idx" style="background:#3454d1">07</span><span class="sb-txt">hyperopt 参数优化</span></a>
+    <a class="sb-item" href="08-书单与拓展.html"><span class="sb-idx" style="background:#7b8499">08</span><span class="sb-txt">书单与拓展</span></a>
+    <a class="sb-item cur" href="09-freqtrade实战详解.html"><span class="sb-idx" style="background:#2f6f4f">09</span><span class="sb-txt">freqtrade 实战详解</span><span class="sb-go">›</span></a>
+  </nav>
+  <div class="sb-foot">浏览器 Ctrl+P 可导出 PDF<br>当前共 10 篇</div>
+</aside>
+
+<nav class="sb-topbar" aria-label="全篇导航">
+  <a href="00-index.html">00 总览</a>
+  <a href="01-量化基础.html">01 量化基础</a>
+  <a href="02-freqtrade入门.html">02 freqtrade</a>
+  <a href="03-回测方法论.html">03 回测</a>
+  <a href="04-经典策略与K线.html">04 策略·K线</a>
+  <a href="05-风控与止损.html">05 风控</a>
+  <a href="06-FreqAI与机器学习.html">06 FreqAI</a>
+  <a href="07-hyperopt参数优化.html">07 hyperopt</a>
+  <a href="08-书单与拓展.html">08 书单</a>
+  <a class="cur" href="09-freqtrade实战详解.html">09 实战</a>
+</nav>
+
+<div class="container">
+<div class="page">
+<header class="hero">
+  <span class="step-tag">STEP ⑨ · 实战手册</span>
+  <h1>freqtrade 实战详解：从一条命令到 dry-run 稳定运行</h1>
+  <p class="goal">目标：<b>安装 → 初始化 → config 逐块吃透 → 数据管理 → 手写策略 → 回测 → dry-run 跑起来 → 看懂监控</b>。全程按你的真实环境写：WSL2 Ubuntu + freqtrade 2026.7 + Binance（127.0.0.1:7897 代理）。本篇是操作手册，概念原理见 02/03/06，参数优化见 07。</p>
+</header>
+<main class="content">
+
+<h2 class="section"><span class="sec-no">1</span>学习地图：freqtrade 的使用全流程</h2>
+<p>freqtrade 所有日常操作就是一条主线路：<b>准备环境 → 备数据 → 写策略 → 回测 → （优化）→ dry-run → 实盘</b>。每一步对应一小组命令，先把地图记住，后面每一节就是地图上的一站。</p>
+
+<div class="figure">
+<svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <marker id="a1" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#7b8499"/></marker>
+  </defs>
+  <rect width="680" height="300" fill="#ffffff"/>
+  <g font-size="12.5">
+    <text x="340" y="28" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">freqtrade 使用主线：7 站，每站 1-3 条命令</text>
+    <text x="340" y="48" text-anchor="middle" fill="#7b8499">左列「准备区」（做一次）· 右列「循环区」（反复迭代）</text>
+    <!-- 上排：准备区 -->
+    <rect x="25" y="70" width="150" height="66" rx="12" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="100" y="95" text-anchor="middle" font-weight="800" fill="#3454d1">① 安装</text>
+    <text x="100" y="115" text-anchor="middle" fill="#47506b">pip / docker / 源码</text>
+    <rect x="195" y="70" width="150" height="66" rx="12" fill="#e9f7ef" stroke="#bfe6cf"/>
+    <text x="270" y="95" text-anchor="middle" font-weight="800" fill="#1f9d55">② 初始化</text>
+    <text x="270" y="115" text-anchor="middle" fill="#47506b">create-userdir<br/></text>
+    <text x="270" y="128" text-anchor="middle" fill="#7b8499" font-size="11">new-config</text>
+    <rect x="365" y="70" width="150" height="66" rx="12" fill="#fdf4e3" stroke="#eed9ae"/>
+    <text x="440" y="95" text-anchor="middle" font-weight="800" fill="#b7791f">③ 下载数据</text>
+    <text x="440" y="115" text-anchor="middle" fill="#47506b">download-data</text>
+    <rect x="535" y="70" width="120" height="66" rx="12" fill="#f1edfb" stroke="#ddd2f4"/>
+    <text x="595" y="95" text-anchor="middle" font-weight="800" fill="#6d4fc1">④ 写策略</text>
+    <text x="595" y="115" text-anchor="middle" fill="#47506b">.py 一个类</text>
+    <line x1="175" y1="103" x2="191" y2="103" stroke="#7b8499" stroke-width="1.6" marker-end="url(#a1)"/>
+    <line x1="345" y1="103" x2="361" y2="103" stroke="#7b8499" stroke-width="1.6" marker-end="url(#a1)"/>
+    <line x1="515" y1="103" x2="531" y2="103" stroke="#7b8499" stroke-width="1.6" marker-end="url(#a1)"/>
+    <!-- 下排：循环区 -->
+    <rect x="535" y="170" width="120" height="66" rx="12" fill="#e4f6f6" stroke="#bfe2e2"/>
+    <text x="595" y="195" text-anchor="middle" font-weight="800" fill="#0f8a8a">⑤ 回测</text>
+    <text x="595" y="215" text-anchor="middle" fill="#47506b">backtesting</text>
+    <rect x="365" y="170" width="150" height="66" rx="12" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="440" y="195" text-anchor="middle" font-weight="800" fill="#3454d1">⑥ 优化</text>
+    <text x="440" y="215" text-anchor="middle" fill="#47506b">hyperopt / 调参</text>
+    <rect x="195" y="170" width="150" height="66" rx="12" fill="#e9f7ef" stroke="#bfe6cf"/>
+    <text x="270" y="195" text-anchor="middle" font-weight="800" fill="#1f9d55">⑦ dry-run</text>
+    <text x="270" y="215" text-anchor="middle" fill="#47506b">trade --dry-run</text>
+    <rect x="25" y="170" width="150" height="66" rx="12" fill="#fdeeee" stroke="#f3caca"/>
+    <text x="100" y="195" text-anchor="middle" font-weight="800" fill="#d64545">⑧ 实盘</text>
+    <text x="100" y="215" text-anchor="middle" fill="#47506b">真金白银</text>
+    <line x1="535" y1="203" x2="519" y2="203" stroke="#7b8499" stroke-width="1.6" marker-end="url(#a1)" transform="rotate(180 527 203)"/>
+    <line x1="365" y1="203" x2="349" y2="203" stroke="#7b8499" stroke-width="1.6" marker-end="url(#a1)" transform="rotate(180 357 203)"/>
+    <line x1="195" y1="203" x2="179" y2="203" stroke="#7b8499" stroke-width="1.6" marker-end="url(#a1)" transform="rotate(180 187 203)"/>
+    <!-- 循环箭头 -->
+    <path d="M 270 240 C 270 268, 440 268, 440 240" fill="none" stroke="#7b8499" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#a1)"/>
+    <text x="355" y="282" text-anchor="middle" fill="#7b8499" font-size="11.5">回测不达标 → 回④改策略 / ⑥调参（无限循环，直到满意）</text>
+    <text x="595" y="160" text-anchor="middle" fill="#7b8499" font-size="11.5">⑤ 从这里进入循环区 ↓</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 9-1</b> · freqtrade 使用主线：准备区做一次，循环区反复迭代</div>
+</div>
+
+<div class="callout tip">
+  <div class="co-title">✅ 本篇与你的位置</div>
+  <p>你的 crypto-trader 已走完 ①-⑥（含 FreqAI）。当前目标：<b>第 7 站 dry-run 稳定运行 2-4 周</b>。所以本篇重点在第 2、3、4、7 节（config、数据、dry-run、监控），策略与回测细节可略读。</p>
+</div>
+
+<h2 class="section"><span class="sec-no">2</span>安装与环境（WSL2 + 代理）</h2>
+
+<h3 class="sub">2.1 三种安装方式对比</h3>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>方式</th><th>命令要点</th><th>适合</th><th>你的场景</th></tr>
+  <tr><td><b>pip + venv</b></td><td><code class="inline">python -m venv .venv && pip install freqtrade</code></td><td>想读源码、改回调、排错</td><td><span class="badge g">✔ 推荐</span> 已在用</td></tr>
+  <tr><td><b>Docker</b></td><td><code class="inline">docker compose</code>，镜像自带依赖</td><td>只想跑、不碰源码</td><td><span class="badge y">备选</span> VPS 部署时再评估</td></tr>
+  <tr><td><b>源码安装</b></td><td><code class="inline">git clone + pip install -e .</code></td><td>改框架本身 / 追最新版</td><td><span class="badge r">暂不需要</span></td></tr>
+</table></div>
+
+<h3 class="sub">2.2 标准安装流程（WSL2 Ubuntu）</h3>
+<pre class="code"><span class="filename"># WSL2 Ubuntu 内执行</span>
+<span class="c"># 1. 系统依赖</span>
+sudo apt update && sudo apt install -y python3-venv python3-pip git curl
+
+<span class="c"># 2. 独立虚拟环境（永远别装进系统 Python）</span>
+python3 -m venv .venv
+source .venv/bin/activate
+
+<span class="c"># 3. 安装 freqtrade（含完整依赖，约 2-5 分钟）</span>
+pip install -U pip
+pip install freqtrade
+
+<span class="c"># 4. FreqAI 需要，务必装上</span>
+pip install scikit-learn lightgbm joblib
+
+<span class="c"># 5. 验证安装</span>
+freqtrade --version          <span class="c"># 应输出 2026.7</span>
+freqtrade --help             <span class="c"># 看所有子命令</span></pre>
+
+<h3 class="sub">2.3 代理：WSL2 访问 Binance 的关键</h3>
+<p>WSL2 有两种网络模式，代理写法不同——这是你环境里最常见的坑：</p>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>WSL2 网络模式</th><th>代理地址写法</th><th>怎么确认自己是哪种</th></tr>
+  <tr><td><b>mirrored 镜像模式</b></td><td><code class="inline">127.0.0.1:7897</code>（与 Windows 共享回环）</td><td rowspan="2"><code class="inline">curl -x http://127.0.0.1:7897 https://api.binance.com/api/v3/ping</code> 通了就是 mirrored；<br>再试 <code class="inline">cat /etc/resolv.conf</code> 看 nameserver 是否 10.x.x.x（NAT 特征）</td></tr>
+  <tr><td><b>NAT 模式（默认）</b></td><td><code class="inline">http://&lt;Windows主机IP&gt;:7897</code>，主机 IP 可用 <code class="inline">ip route | grep default</code> 取网关地址</td></tr>
+</table></div>
+<pre class="code"><span class="filename"># 快速验证代理连通性（WSL2 内）</span>
+curl -x http://127.0.0.1:7897 -sS https://api.binance.com/api/v3/ping
+<span class="c"># 返回 {} 即通；超时/拒绝 → 检查模式与防火墙</span></pre>
+<div class="callout warn">
+  <div class="co-title">⚠️ 代理三连坑</div>
+  <ol>
+    <li><b>终端代理 ≠ freqtrade 代理</b>：即使 <code class="inline">export https_proxy=...</code>，freqtrade 底层的 aiohttp 也经常不认——必须在 config.json 的 <code class="inline">exchange.ccxt_config</code> 里显式写 <code class="inline">aiohttp_proxy</code>（第 4 节）。</li>
+    <li><b>代理软件要开「允许局域网连接」</b>（Allow LAN），否则 NAT 模式下 Windows 防火墙外的请求全被拒。</li>
+    <li><b>dry-run 只走公开行情接口</b>，不需要 API Key；但代理断了 bot 会连续报 <code class="inline">NetworkError</code>，所以代理本身就是 dry-run 的单点故障。</li>
+  </ol>
+</div>
+
+<h2 class="section"><span class="sec-no">3</span>初始化：user_data 目录解剖</h2>
+<pre class="code"><span class="filename"># 初始化（首次一次即可）</span>
+freqtrade create-userdir --userdir user_data
+freqtrade new-config --config config.json   <span class="c"># 交互式问答生成配置</span></pre>
+<p>生成后你的工作目录长这样——<b>以后所有东西都往这棵树里放</b>：</p>
+
+<div class="figure">
+<svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="320" fill="#ffffff"/>
+  <g font-size="12.5">
+    <text x="340" y="26" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">user_data 目录树：每一格都是你天天要碰的</text>
+    <!-- 主干 -->
+    <rect x="30" y="130" width="150" height="44" rx="10" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="105" y="150" text-anchor="middle" font-weight="800" fill="#3454d1" font-size="13.5">user_data/</text>
+    <text x="105" y="166" text-anchor="middle" fill="#7b8499" font-size="11">--userdir 指向它</text>
+    <!-- 分支 -->
+    <line x1="180" y1="60" x2="255" y2="60" stroke="#c9d2e2" stroke-width="1.5"/>
+    <line x1="180" y1="110" x2="255" y2="110" stroke="#c9d2e2" stroke-width="1.5"/>
+    <line x1="180" y1="152" x2="255" y2="152" stroke="#c9d2e2" stroke-width="1.5"/>
+    <line x1="180" y1="194" x2="255" y2="194" stroke="#c9d2e2" stroke-width="1.5"/>
+    <line x1="180" y1="236" x2="255" y2="236" stroke="#c9d2e2" stroke-width="1.5"/>
+    <line x1="180" y1="278" x2="255" y2="278" stroke="#c9d2e2" stroke-width="1.5"/>
+    <rect x="260" y="40" width="180" height="40" rx="9" fill="#e9f7ef" stroke="#bfe6cf"/>
+    <text x="350" y="57" text-anchor="middle" font-weight="700" fill="#1f9d55">strategies/ 策略类</text>
+    <text x="350" y="72" text-anchor="middle" fill="#7b8499" font-size="11">SentimentFreqAI.py 放这里</text>
+    <rect x="260" y="90" width="180" height="40" rx="9" fill="#fdf4e3" stroke="#eed9ae"/>
+    <text x="350" y="107" text-anchor="middle" font-weight="700" fill="#b7791f">data/ K线数据</text>
+    <text x="350" y="122" text-anchor="middle" fill="#7b8499" font-size="11">feather/json，download-data 落盘</text>
+    <rect x="260" y="132" width="180" height="40" rx="9" fill="#f1edfb" stroke="#ddd2f4"/>
+    <text x="350" y="149" text-anchor="middle" font-weight="700" fill="#6d4fc1">freqaimodels/ 模型</text>
+    <text x="350" y="164" text-anchor="middle" fill="#7b8499" font-size="11">FreqAI 训练产物，identifier 子目录</text>
+    <rect x="260" y="174" width="180" height="40" rx="9" fill="#e4f6f6" stroke="#bfe2e2"/>
+    <text x="350" y="191" text-anchor="middle" font-weight="700" fill="#0f8a8a">backtest_results/ 回测结果</text>
+    <text x="350" y="206" text-anchor="middle" fill="#7b8499" font-size="11">zip + meta，backtesting-show 复看</text>
+    <rect x="260" y="216" width="180" height="40" rx="9" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="350" y="233" text-anchor="middle" font-weight="700" fill="#3454d1">hyperopt_results/ 优化结果</text>
+    <text x="350" y="248" text-anchor="middle" fill="#7b8499" font-size="11">hyperopt 产出，可 --hyperopt-filename 指定</text>
+    <rect x="260" y="258" width="180" height="40" rx="9" fill="#fdeeee" stroke="#f3caca"/>
+    <text x="350" y="275" text-anchor="middle" font-weight="700" fill="#d64545">logs/ + notebooks/</text>
+    <text x="350" y="290" text-anchor="middle" fill="#7b8499" font-size="11">日志与探索性分析</text>
+    <!-- 旁边注释 -->
+    <rect x="470" y="40" width="185" height="258" rx="10" fill="#f6f8fc" stroke="#e4e8f0"/>
+    <text x="562" y="66" text-anchor="middle" font-weight="700" fill="#1c2333" font-size="12.5">三个运行时文件在树外</text>
+    <text x="562" y="94" text-anchor="middle" fill="#47506b" font-size="12">config.json（大脑）</text>
+    <text x="562" y="120" text-anchor="middle" fill="#47506b" font-size="12">tradesv3.dry_run.sqlite</text>
+    <text x="562" y="136" text-anchor="middle" fill="#7b8499" font-size="11">dry-run 交易记录</text>
+    <text x="562" y="162" text-anchor="middle" fill="#47506b" font-size="12">tradesv3.sqlite</text>
+    <text x="562" y="178" text-anchor="middle" fill="#7b8499" font-size="11">实盘交易记录</text>
+    <text x="562" y="206" text-anchor="middle" fill="#47506b" font-size="12">.env（DeepSeek Key）</text>
+    <text x="562" y="228" text-anchor="middle" fill="#7b8499" font-size="11">别提交进 git！</text>
+    <text x="562" y="258" text-anchor="middle" fill="#7b8499" font-size="11">docker-compose.yml 在树外</text>
+    <text x="562" y="274" text-anchor="middle" fill="#7b8499" font-size="11">（若用 Docker 部署）</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 9-2</b> · user_data 目录树：策略进 strategies/，数据进 data/，模型进 freqaimodels/</div>
+</div>
+
+<h2 class="section"><span class="sec-no">4</span>config.json 逐块详解（重点节）</h2>
+<p><code class="inline">new-config</code> 生成的配置有几十项，但<b>决定行为的核心就 8 块</b>。下面按你的 crypto-trader 真实配置讲解——只列关键项，完整注释见 <a href="https://www.freqtrade.io/en/stable/configuration/" target="_blank">官方 configuration 文档</a>。</p>
+
+<pre class="code"><span class="filename">config.json · 核心骨架（关键项均含注释）</span>
+{
+  <span class="s">"max_open_trades"</span>: <span class="n">3</span>,                  <span class="c">// 最多同时持有几笔仓位。dry-run 建议 2-3</span>
+  <span class="s">"stake_currency"</span>: <span class="s">"USDT"</span>,               <span class="c">// 计价货币</span>
+  <span class="s">"stake_amount"</span>: <span class="s">"unlimited"</span>,           <span class="c">// 每笔投入；unlimited=按可用余额均分</span>
+  <span class="s">"tradable_balance_ratio"</span>: <span class="n">0.99</span>,        <span class="c">// 最多动用多少比例余额（留手续费余量）</span>
+
+  <span class="s">"dry_run"</span>: <span class="k">true</span>,                          <span class="c">// ★ 模拟盘开关。true=不下真单</span>
+  <span class="s">"dry_run_wallet"</span>: <span class="n">1000</span>,                  <span class="c">// 模拟盘初始资金</span>
+
+  <span class="s">"trading_mode"</span>: <span class="s">"spot"</span>,                  <span class="c">// spot 现货 / futures 合约</span>
+  <span class="s">"timeframe"</span>: <span class="s">"15m"</span>,                     <span class="c">// 主K线周期，策略类里可覆盖</span>
+
+  <span class="s">"exchange"</span>: {
+    <span class="s">"name"</span>: <span class="s">"binance"</span>,
+    <span class="s">"key"</span>: <span class="s">""</span>,  <span class="s">"secret"</span>: <span class="s">""</span>,              <span class="c">// dry-run 留空即可（公开行情）</span>
+    <span class="s">"ccxt_config"</span>: {
+      <span class="s">"aiohttp_proxy"</span>: <span class="s">"http://127.0.0.1:7897"</span>,  <span class="c">// ★ 你的代理，WSL2 必写</span>
+      <span class="s">"enableRateLimit"</span>: <span class="k">true</span>
+    },
+    <span class="s">"pair_whitelist"</span>: [<span class="s">"BTC/USDT"</span>, <span class="s">"ETH/USDT"</span>],
+    <span class="s">"pair_blacklist"</span>: [<span class="s">"BNB/.*"</span>]
+  },
+
+  <span class="s">"entry_pricing"</span>: {                        <span class="c">// 入场挂价策略（滑点保护）</span>
+    <span class="s">"price_side"</span>: <span class="s">"other"</span>,                <span class="c">// 挂对手价，成交快</span>
+    <span class="s">"use_order_book"</span>: <span class="k">true</span>, <span class="s">"order_book_top"</span>: <span class="n">1</span>
+  },
+  <span class="s">"exit_pricing"</span>: { <span class="s">"price_side"</span>: <span class="s">"other"</span>, <span class="c">// 退出同理</span>
+    <span class="s">"use_order_book"</span>: <span class="k">true</span>, <span class="s">"order_book_top"</span>: <span class="n">1</span> },
+
+  <span class="s">"pairlists"</span>: [{                            <span class="c">// 交易对筛选流水线，按顺序执行</span>
+      <span class="s">"method"</span>: <span class="s">"VolumePairList"</span>,           <span class="c">// 按成交量取前 N</span>
+      <span class="s">"number_assets"</span>: <span class="n">30</span>,
+      <span class="s">"sort_key"</span>: <span class="s">"quoteVolume"</span>
+  }],
+
+  <span class="s">"api_server"</span>: {                            <span class="c">// ★ Web UI / REST API</span>
+    <span class="s">"enabled"</span>: <span class="k">true</span>,
+    <span class="s">"listen_ip_address"</span>: <span class="s">"127.0.0.1"</span>,      <span class="c">// 只监听本机，安全</span>
+    <span class="s">"listen_port"</span>: <span class="n">8080</span>,
+    <span class="s">"username"</span>: <span class="s">"freqtrader"</span>,
+    <span class="s">"password"</span>: <span class="s">"改成强密码"</span>,
+    <span class="s">"jwt_secret"</span>: <span class="s">"改成长随机串"</span>          <span class="c">// 随手 openssl rand -hex 32</span>
+  }
+}</pre>
+
+<h3 class="sub">4.1 最容易配错的 6 个键</h3>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>键</th><th>常见错误</th><th>正确姿势</th></tr>
+  <tr><td><code class="inline">aiohttp_proxy</code></td><td>只配了终端环境变量，没写进 config</td><td>写进 <code class="inline">exchange.ccxt_config</code>，这是唯一可靠的位置</td></tr>
+  <tr><td><code class="inline">startup_candle_count</code></td><td>给 100，指标实际需要 950 → 信号错乱</td><td>= 最长指标回看窗口 + 裕量（你的项目应约 950）</td></tr>
+  <tr><td><code class="inline">max_open_trades</code></td><td>设太大，模拟资金被摊薄到每笔几十刀</td><td>资金/<b>预期单笔 stake</b> 再取整，3 左右合适</td></tr>
+  <tr><td><code class="inline">pair_whitelist</code> 与 pairlists 冲突</td><td>VolumePairList 会覆盖手写白名单</td><td>想固定币对就用 <code class="inline">StaticPairList</code>，想动态就删白名单</td></tr>
+  <tr><td><code class="inline">listen_ip_address</code></td><td>写成 0.0.0.0 暴露到局域网</td><td>本机调试一律 127.0.0.1</td></tr>
+  <tr><td>freqai 配置重复</td><td>策略类和 config 各有一份 <code class="inline">freqai</code> 块</td><td>只留 config 一份（你项目 review 里的 17 号坑）</td></tr>
+</table></div>
+
+<div class="callout note">
+  <div class="co-title">💡 freqai 块：dry-run 模式下的关键项</div>
+  <ul>
+    <li><code class="inline">train_period_days</code>：每次训练用多少历史（30-60 天常见）</li>
+    <li><code class="inline">backtest_period_days</code>：回测中每次重训覆盖多久（7 天起步）</li>
+    <li><code class="inline">expiration_hours</code>：实盘/dry-run 模型过期时间，过期自动重训。<b>你的机器无 GPU，设 24 而不是 6</b>，否则一天全量重训 4 次，CPU 扛不住</li>
+    <li><code class="inline">identifier</code>：模型命名空间，改特征后必须换新 identifier，否则读到旧模型</li>
+    <li><code class="inline">fit_live_training_candles</code>：实盘训练时额外掺入的实时K线数（0-400）</li>
+  </ul>
+</div>
+
+<h2 class="section"><span class="sec-no">5</span>数据管理：download-data 全解</h2>
+<p>回测和 FreqAI 训练都吃本地数据。数据不在本地，一切免谈。</p>
+<pre class="code"><span class="filename"># 下载 BTC/ETH 的 15m K线，180 天，USDT 计价</span>
+freqtrade download-data \
+  --exchange binance \
+  --pairs BTC/USDT ETH/USDT \
+  --timeframes 15m 1h \
+  --days 180 \
+  --userdir user_data \
+  <span class="c"># 代理同样要在 config 里配好，或加 --config 指向你的配置</span>
+
+<span class="c"># FreqAI 常用：多周期特征 + 更长历史（训练窗口长）</span>
+freqtrade download-data -c config.json --timerange 20260501- --timeframes 5m 15m 1h 4h
+
+<span class="c"># 查看本地已有哪些数据</span>
+freqtrade list-data --userdir user_data
+
+<span class="c"># 数据格式转换（feather 是默认且最快）</span>
+freqtrade convert-data --format-from json --format-to feather \
+  --pairs BTC/USDT -t 15m --timeframes 15m</pre>
+
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>参数</th><th>含义</th><th>经验值</th></tr>
+  <tr><td><code class="inline">--days N</code></td><td>最近 N 天</td><td>普通回测 90-180；FreqAI ≥ train+backtest 总量</td></tr>
+  <tr><td><code class="inline">--timerange A-B</code></td><td>精确区间，如 <code class="inline">20260401-20260701</code></td><td>复现实验必用（--days 会随日期漂移）</td></tr>
+  <tr><td><code class="inline">--timeframes</code></td><td>多周期一次拉齐</td><td>策略里 informative 用什么周期就下什么</td></tr>
+  <tr><td><code class="inline">--prepend</code></td><td>往更早的方向补数据</td><td>扩展历史而不重下</td></tr>
+</table></div>
+<div class="callout warn">
+  <div class="co-title">⚠️ 数据坑两条</div>
+  <ol>
+    <li><b>数据不足 ≠ 报错</b>：FreqAI 训练数据不够时常常静默出空模型或回测 0 交易——你的 deploy.sh 曾需要 <code class="inline">--days 120</code> 就是这个原因。</li>
+    <li><b>回测期间别删 data/</b>：换个目录或清理磁盘时，data/ 是可以重新下载的（可再生），但 freqaimodels/ 删了就要重训。</li>
+  </ol>
+</div>
+
+<h2 class="section"><span class="sec-no">6</span>手写一个完整策略（从头到尾）</h2>
+<p>不管多复杂，一个策略文件 = <b>一个类 + 固定骨架</b>。下面这个 <code class="inline">MyFirstStrategy</code> 是可直接跑的最小完整版，注释即教程：</p>
+<pre class="code"><span class="filename">user_data/strategies/MyFirstStrategy.py</span>
+<span class="k">from</span> pandas <span class="k">import</span> DataFrame
+<span class="k">import</span> talib.abstract <span class="k">as</span> ta
+<span class="k">from</span> freqtrade.strategy <span class="k">import</span> IStrategy, IntParameter
+<span class="k">from</span> freqtrade.persistence <span class="k">import</span> Trade
+
+
+<span class="k">class</span> <span class="f">MyFirstStrategy</span>(IStrategy):
+    <span class="s">"""EMA 趋势 + RSI 过滤：最经典的入门组合"""</span>
+
+    INTERFACE_VERSION = <span class="n">3</span>          <span class="c"># 现代接口（enter_long / exit_long）</span>
+
+    <span class="c"># ---- 基本参数（覆盖 config）----</span>
+    timeframe = <span class="s">'15m'</span>
+    can_short = <span class="k">False</span>                <span class="c"># 现货无做空</span>
+    startup_candle_count = <span class="n">210</span>       <span class="c"># EMA200 需要 200 根 → 留裕量</span>
+    process_only_new_candles = <span class="k">True</span>  <span class="c"># 每根K线只算一次（省CPU，结果确定）</span>
+
+    <span class="c"># ---- 退出：ROI 阶梯 + 固定止损 ----</span>
+    <span class="c"># ROI：持有越久，满足的收益率阈值越低（表格单位是分钟）</span>
+    minimal_roi = {
+        <span class="s">'0'</span>: <span class="n">0.06</span>,      <span class="c"># 立即：+6% 就走</span>
+        <span class="s">'60'</span>: <span class="n">0.03</span>,     <span class="c"># 1小时后：+3%</span>
+        <span class="s">'180'</span>: <span class="n">0.01</span>     <span class="c"># 3小时后：+1%</span>
+    }
+    stoploss = -<span class="n">0.05</span>               <span class="c"># 硬止损 -5%</span>
+    trailing_stop = <span class="k">True</span>            <span class="c"># 追踪止损（见 05 篇）</span>
+    trailing_stop_positive = <span class="n">0.015</span>
+    trailing_stop_positive_offset = <span class="n">0.03</span>
+    trailing_only_offset_is_reached = <span class="k">True</span>
+
+    <span class="c"># ---- 可优化参数（hyperopt 用，见 07 篇）----</span>
+    buy_rsi = IntParameter(<span class="n">20</span>, <span class="n">45</span>, default=<span class="n">30</span>, space=<span class="s">'buy'</span>)
+
+    <span class="k">def</span> <span class="f">populate_indicators</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># ① 指标层：只加列，不做决策。所有列向后可用</span>
+        dataframe[<span class="s">'ema_fast'</span>] = ta.EMA(dataframe, timeperiod=<span class="n">12</span>)
+        dataframe[<span class="s">'ema_slow'</span>] = ta.EMA(dataframe, timeperiod=<span class="n">200</span>)
+        dataframe[<span class="s">'rsi'</span>] = ta.RSI(dataframe, timeperiod=<span class="n">14</span>)
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_entry_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># ② 入场层：满足所有条件的行打 enter_long=1</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'ema_fast'</span>] &gt; dataframe[<span class="s">'ema_slow'</span>]) &amp;   <span class="c"># 趋势向上</span>
+            (dataframe[<span class="s">'rsi'</span>] &lt; self.buy_rsi.value) &amp;                        <span class="c"># 短期超卖回调</span>
+            (dataframe[<span class="s">'volume'</span>] &gt; <span class="n">0</span>),                                  <span class="c"># 排除停牌/异常</span>
+            <span class="s">'enter_long'</span>
+        ] = <span class="n">1</span>
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_exit_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># ③ 出场层（ROI/止损之外的主动离场）</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'ema_fast'</span>] &lt; dataframe[<span class="s">'ema_slow'</span>]),
+            <span class="s">'exit_long'</span>
+        ] = <span class="n">1</span>
+        <span class="k">return</span> dataframe
+
+    <span class="c"># ---- 进阶回调（可选，按需加）----</span>
+    <span class="k">def</span> <span class="f">custom_stoploss</span>(self, pair: str, trade: Trade, current_time,
+                          current_rate: float, current_profit: float, **kwargs) -&gt; float:
+        <span class="c"># 动态止损：盈利超过 4% 后，止损线收紧到保本+1%</span>
+        <span class="k">if</span> current_profit &gt; <span class="n">0.04</span>:
+            <span class="k">return</span> <span class="n">0.01</span>
+        <span class="k">return</span> self.stoploss            <span class="c"># 否则用默认值</span>
+
+    <span class="k">def</span> <span class="f">confirm_trade_entry</span>(self, pair: str, order_type: str, amount: float,
+                               rate: float, time_in_force: str, current_time,
+                               entry_tag, side: str, **kwargs) -&gt; bool:
+        <span class="c"># 最后一道闸门：返回 False 可否决这笔单（如加情绪过滤）</span>
+        <span class="k">return</span> <span class="k">True</span></pre>
+
+<div class="callout amber">
+  <div class="co-title">📌 新手最常犯的三个策略 Bug</div>
+  <ol>
+    <li><b>严格相等判断连续值</b>：像 <code class="inline">df['&-target'] == 1</code> 判回归器输出——你项目的 P0 坑。连续值要用阈值：<code class="inline">df['pred'] &gt; 0.01</code>。</li>
+    <li><b>未来函数</b>：指标里用了 shift(-1) 或未来窗口。回测起飞、实盘暴毙。</li>
+    <li><b>minimal_roi 全 0 甩锅</b>：全 0 表示「任何利润立即平仓」，不是「不平仓」。不想用 ROI 就设大值如 <code class="inline">{"0": 100}</code>。</li>
+  </ol>
+</div>
+
+<h2 class="section"><span class="sec-no">7</span>回测实战与报表速读</h2>
+<pre class="code"><span class="filename"># 标准回测（普通策略）</span>
+freqtrade backtesting \
+  --strategy MyFirstStrategy \
+  --timerange 20260601-20260901 \
+  --timeframe-detail 5m          <span class="c"># 可选：用5m细粒度模拟盘内成交，更真实</span>
+
+<span class="c"># FreqAI 回测（多了模型与训练窗口参数）</span>
+freqtrade backtesting \
+  --strategy SentimentFreqAI \
+  --freqaimodel LightGBMRegressor \
+  --timerange 20260601-20260901 \
+  --startup-candle 950
+
+<span class="c"># 复看最近一次回测结果（不用重跑）</span>
+freqtrade backtesting-show
+<span class="c"># 导出单笔交易明细</span>
+freqtrade backtesting-analysis --analysis-groups 0 1</pre>
+
+<h3 class="sub">7.1 报表只盯这 7 个数</h3>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>指标</th><th>含义</th><th>健康值参考</th></tr>
+  <tr><td><b>Total/Dry trades</b></td><td>总交易笔数</td><td>&lt; 30 笔的回测无统计意义</td></tr>
+  <tr><td><b>Profit total</b></td><td>总收益率</td><td>关注是否覆盖手续费后仍为正</td></tr>
+  <tr><td><b>Win% (获利比例)</b></td><td>胜率</td><td>趋势策略 40-55% 都正常，别迷信高胜率</td></tr>
+  <tr><td><b>Profit factor</b></td><td>总盈利/总亏损</td><td><b>&gt; 1.5 及格，&gt; 2 优秀</b></td></tr>
+  <tr><td><b>Max drawdown</b></td><td>最大回撤（含持续时长）</td><td>收益/回撤 &lt; 1.5 的策略慎用</td></tr>
+  <tr><td><b>Avg. duration</b></td><td>平均持仓时长</td><td>要与 timeframe 匹配，异常短=频繁开平</td></tr>
+  <tr><td><b>CAGR</b></td><td>年化收益</td><td>与回撤一起看，单看没意义</td></tr>
+</table></div>
+<p>详细方法论（前视偏差、滑点设置、可信前提）在 <a href="03-回测方法论.html">03 篇</a>，此处不重复。</p>
+
+<h2 class="section"><span class="sec-no">8</span>dry-run 实战：跑起来 + 盯住它</h2>
+
+<h3 class="sub">8.1 启动</h3>
+<pre class="code"><span class="filename"># 前台跑（先这样，能直接看日志）</span>
+freqtrade trade --strategy MyFirstStrategy --dry-run
+
+<span class="c"># 满意后转后台 + 日志落盘（推荐 nohup 或 tmux）</span>
+tmux new -s ftbot
+freqtrade trade -c config.json --strategy SentimentFreqAI --dry-run \
+  --freqaimodel LightGBMRegressor \
+  2>&1 | tee -a logs/dryrun-$(date +%F).log
+<span class="c"># Ctrl+B D 脱离会话；tmux attach -t ftbot 回来看</span></pre>
+
+<div class="figure">
+<svg viewBox="0 0 680 290" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 Z" fill="#3454d1"/></marker>
+  </defs>
+  <rect width="680" height="290" fill="#ffffff"/>
+  <g font-size="12.5">
+    <text x="340" y="26" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">dry-run 运行时：bot 主循环每 5 秒转一圈</text>
+    <text x="340" y="46" text-anchor="middle" fill="#7b8499">K线未收盘就空转；新K线到达才触发完整决策</text>
+    <!-- 循环节点 -->
+    <rect x="30" y="80" width="140" height="58" rx="12" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="100" y="104" text-anchor="middle" font-weight="700" fill="#3454d1">拉取行情</text>
+    <text x="100" y="122" text-anchor="middle" fill="#7b8499" font-size="11">K线/Tick（走代理）</text>
+    <rect x="200" y="80" width="140" height="58" rx="12" fill="#e9f7ef" stroke="#bfe6cf"/>
+    <text x="270" y="104" text-anchor="middle" font-weight="700" fill="#1f9d55">新K线?</text>
+    <text x="270" y="122" text-anchor="middle" fill="#7b8499" font-size="11">否 → 跳过计算</text>
+    <rect x="370" y="80" width="140" height="58" rx="12" fill="#fdf4e3" stroke="#eed9ae"/>
+    <text x="440" y="104" text-anchor="middle" font-weight="700" fill="#b7791f">策略回调</text>
+    <text x="440" y="122" text-anchor="middle" fill="#7b8499" font-size="11">指标→信号（FreqAI含推理）</text>
+    <rect x="540" y="80" width="115" height="58" rx="12" fill="#f1edfb" stroke="#ddd2f4"/>
+    <text x="597" y="104" text-anchor="middle" font-weight="700" fill="#6d4fc1">模拟成交</text>
+    <text x="597" y="122" text-anchor="middle" fill="#7b8499" font-size="11">记入 sqlite</text>
+    <line x1="170" y1="109" x2="196" y2="109" stroke="#3454d1" stroke-width="1.6" marker-end="url(#a2)"/>
+    <line x1="340" y1="109" x2="366" y2="109" stroke="#3454d1" stroke-width="1.6" marker-end="url(#a2)"/>
+    <line x1="510" y1="109" x2="536" y2="109" stroke="#3454d1" stroke-width="1.6" marker-end="url(#a2)"/>
+    <!-- 下方：持仓管理 -->
+    <rect x="120" y="180" width="200" height="58" rx="12" fill="#fdeeee" stroke="#f3caca"/>
+    <text x="220" y="204" text-anchor="middle" font-weight="700" fill="#d64545">持仓管理（每圈都查）</text>
+    <text x="220" y="222" text-anchor="middle" fill="#7b8499" font-size="11">止损 / ROI / 追踪止损 / 信号离场</text>
+    <rect x="380" y="180" width="200" height="58" rx="12" fill="#e4f6f6" stroke="#bfe2e2"/>
+    <text x="480" y="204" text-anchor="middle" font-weight="700" fill="#0f8a8a">FreqAI 附加</text>
+    <text x="480" y="222" text-anchor="middle" fill="#7b8499" font-size="11">模型过期 → 自动重训（24h）</text>
+    <path d="M 597 138 C 597 165, 320 165, 220 178" fill="none" stroke="#7b8499" stroke-width="1.4" marker-end="url(#a2)"/>
+    <path d="M 480 238 C 480 268, 100 268, 100 140" fill="none" stroke="#7b8499" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#a2)"/>
+    <text x="290" y="272" text-anchor="middle" fill="#7b8499" font-size="11">循环往复（throttle 秒一圈，直到 Ctrl+C）</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 9-3</b> · dry-run 主循环：拉行情 → 新K线判定 → 策略回调 → 模拟成交 + 持仓管理</div>
+</div>
+
+<h3 class="sub">8.2 监控三件套</h3>
+<div class="cards">
+  <div class="card"><h4><span class="dot" style="background:#3454d1"></span>① FreqUI（网页仪表盘）</h4><p>config 里 <code class="inline">api_server.enabled: true</code> 后，首次执行 <code class="inline">freqtrade install-ui</code>，浏览器开 <code class="inline">http://127.0.0.1:8080</code>。看持仓、K线图、逐笔交易、余额，最直观。</p></div>
+  <div class="card"><h4><span class="dot" style="background:#1f9d55"></span>② 日志（排错生命线）</h4><p>盯三类行：<code class="inline">Bot heartbeat</code>（活着）、<code class="inline">Searching</code>（在找信号）、<code class="inline">do_predict</code>（FreqAI 推理结果，0=模型拒判）。日志读法见 8.3。</p></div>
+  <div class="card"><h4><span class="dot" style="background:#b7791f"></span>③ Telegram（远程遥控）</h4><p>config 配 <code class="inline">telegram</code> 块（BotFather 拿 token），手机收通知 + 发 <code class="inline">/status</code> 查持仓、<code class="inline">/stop</code> 停止。出门在外必备。</p></div>
+</div>
+
+<h3 class="sub">8.3 日志怎么读（对照样例）</h3>
+<pre class="code"><span class="filename">正常运行的日志长这样（删减版）</span>
+2026-09-14 08:00:05 - freqtrade.bot - INFO - Bot heartbeat. PID=3210, version='2026.7'
+2026-09-14 08:00:12 - freqtrade.wallets - INFO - Wallets synced.
+2026-09-14 08:00:13 - freqtrade.freqtradebot - INFO - Searching for BTC/USDT
+2026-09-14 08:00:20 - freqtrade.freqai.freqai_interface - INFO - <span class="hl">Returned prediction: 0.0123, Do predict: 1</span>
+2026-09-14 08:00:21 - freqtrade.freqtradebot - INFO - <span class="hl">Placing dry-market buy order</span>
+2026-09-14 08:00:22 - freqtrade.persistence - INFO - Storing open trade: Trade(id=1, pair=BTC/USDT...)
+
+<span class="c"># 红灯信号（看到就要动手）：</span>
+<span class="c"># NetworkError / RequestTimeout → 代理断了，查 127.0.0.1:7897</span>
+<span class="c"># Do predict: 0 → 模型判定离群/不可信，连续出现=检查 DI_threshold 与特征漂移</span>
+<span class="c"># 长期只有 heartbeat 没有 Searching → 白名单为空或 pairlist 筛掉了所有币</span></pre>
+
+<h2 class="section"><span class="sec-no">9</span>命令速查表（打印贴墙上）</h2>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>场景</th><th>命令</th><th>备注</th></tr>
+  <tr><td>初始化目录</td><td><code class="inline">freqtrade create-userdir --userdir user_data</code></td><td>一次</td></tr>
+  <tr><td>生成配置</td><td><code class="inline">freqtrade new-config -c config.json</code></td><td>交互问答</td></tr>
+  <tr><td>下载数据</td><td><code class="inline">freqtrade download-data -c config.json --days 120</code></td><td>记得代理</td></tr>
+  <tr><td>列出数据</td><td><code class="inline">freqtrade list-data --userdir user_data</code></td><td>查缺口</td></tr>
+  <tr><td>回测</td><td><code class="inline">freqtrade backtesting -s 策略名 --timerange ...</code></td><td><code class="inline">-s</code> = --strategy 缩写</td></tr>
+  <tr><td>复看回测</td><td><code class="inline">freqtrade backtesting-show</code></td><td>不重跑</td></tr>
+  <tr><td>参数优化</td><td><code class="inline">freqtrade hyperopt -s 策略名 --spaces buy sell --epochs 100</code></td><td>见 07 篇</td></tr>
+  <tr><td>网页服务</td><td><code class="inline">freqtrade webserver -c config.json</code></td><td>在 UI 里回测/优化</td></tr>
+  <tr><td>dry-run</td><td><code class="inline">freqtrade trade -c config.json -s 策略名 --dry-run</code></td><td>tmux 里跑</td></tr>
+  <tr><td>装 UI</td><td><code class="inline">freqtrade install-ui</code></td><td>api_server 打开后</td></tr>
+  <tr><td>列出交易所</td><td><code class="inline">freqtrade list-exchanges</code></td><td>带 -1 每行一个</td></tr>
+  <tr><td>列出策略</td><td><code class="inline">freqtrade list-strategies --userdir user_data</code></td><td>排查类名/文件名错误</td></tr>
+  <tr><td>健康检查</td><td><code class="inline">curl http://127.0.0.1:8080/api/v1/ping</code></td><td>bot 存活探测</td></tr>
+</table></div>
+
+<h2 class="section"><span class="sec-no">10</span>常见报错排查表</h2>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>症状</th><th>根因</th><th>解法</th></tr>
+  <tr><td><code class="inline">ccxt.base.errors.NetworkError</code></td><td>代理不通 / 代理软件没开</td><td>用 2.3 的 curl 命令验证；查 ccxt_config 里的 aiohttp_proxy</td></tr>
+  <tr><td>回测 0 交易</td><td>信号太严 / 数据不足 / 启动K线不够</td><td>先 print dataframe 看信号列求和；确认 startup_candle_count ≥ 指标窗口</td></tr>
+  <tr><td><code class="inline">No data found</code></td><td>timerange 超出本地数据范围</td><td><code class="inline">list-data</code> 查范围，重下或改 timerange</td></tr>
+  <tr><td><code class="inline">Strategy ... not found</code></td><td>类名与文件名不一致 / 不在 strategies/ 目录</td><td>list-strategies 确认；类名必须与 --strategy 参数一致</td></tr>
+  <tr><td>FreqAI <code class="inline">do_predict=0</code> 连续出现</td><td>DI_threshold 过严 / 特征漂移</td><td>看 06 篇排查链；dry-run 初期可放宽 DI_threshold</td></tr>
+  <tr><td>CPU 风扇狂转</td><td>模型重训过于频繁</td><td>expiration_hours 调大（24h）；确认 process_only_new_candles=true</td></tr>
+  <tr><td>Web UI 打不开</td><td>api_server 没开 / 端口冲突</td><td>查 config 与 <code class="inline">ss -tlnp | grep 8080</code>；WSL2 里 127.0.0.1 可直接从 Windows 浏览器访问</td></tr>
+  <tr><td>重启后 K 线有缺口</td><td>停机期间数据丢失</td><td>正常现象；重启前 <code class="inline">download-data --days 3</code> 补齐（process_only_new_candles 下缺口影响信号）</td></tr>
+</table></div>
+
+<h2 class="section"><span class="sec-no">11</span>dry-run → 实盘：上真钱前的清单</h2>
+<div class="task-box">
+<h3>🚦 上实盘 Gate（全部打勾才动真钱）</h3>
+<ul class="checklist">
+  <li>dry-run 连续运行 ≥ 2 周，无中断、无重启丢数据</li>
+  <li>期间至少 20 笔完整交易（开+平），行为与回测逻辑一致</li>
+  <li>日志中无未解释的红色报错（NetworkError 偶发可容忍）</li>
+  <li>FreqAI：模型自动重训 ≥ 2 次成功，do_predict=1 占比 &gt; 90%</li>
+  <li>手续费/滑点设置与目标交易所一致（回测里 0.1% 是底线）</li>
+  <li>实盘 API Key 只开现货交易权限，<b>禁提币</b>，IP 白名单绑定 VPS</li>
+  <li>配好 Telegram 告警 + 每日余额快照</li>
+  <li>写好「一键停止」脚本（停 bot + 撤所有挂单）</li>
+  <li>首批实盘资金 ≤ 你愿意全亏的数字（建议 &lt; 500 USDT）</li>
+</ul>
+</div>
+
+<div class="callout tip">
+  <div class="co-title">✅ 本篇实践任务（在你的 crypto-trader 上做）</div>
+  <ol>
+    <li>用 2.3 的 curl 验证代理连通，记录自己是 mirrored 还是 NAT 模式。</li>
+    <li>对照 4.1 的 6 个易错键逐项检查你的 config.json（尤其 aiohttp_proxy 和 startup_candle_count）。</li>
+    <li>dry-run 前台跑 30 分钟，对照 8.3 找到 heartbeat / Searching / do_predict 三类日志行。</li>
+    <li>打开 FreqUI（install-ui + 127.0.0.1:8080），截图记录当前余额与持仓页。</li>
+    <li>把 11 节的清单打印出来贴在显示器旁——它是你上实盘的 Gate。</li>
+  </ol>
+</div>
+
+<div class="foot">配套项目 crypto-trader（freqtrade 2026.7 + FreqAI/LightGBM + DeepSeek 情绪）· 2026-09-14</div>
+</main>
+<nav class="pagenav">
+  <a href="08-书单与拓展.html">← ⑧ 书单与拓展</a>
+  <a href="00-index.html" class="next">返回总览 →</a>
+</nav>
+</div>
+</div>
+</body>
+</html>
