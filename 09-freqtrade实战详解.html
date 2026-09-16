@@ -105,6 +105,57 @@
   <p>你的 crypto-trader 已走完 ①-⑥（含 FreqAI）。当前目标：<b>第 7 站 dry-run 稳定运行 2-4 周</b>。所以本篇重点在第 2、3、4、7 节（config、数据、dry-run、监控），策略与回测细节可略读。</p>
 </div>
 
+<h2 class="section"><span class="sec-no">1½</span>专业名词速查（读不懂哪个回来查）</h2>
+<p>freqtrade 世界里反复出现的术语，按「K线与指标 → 交易动作 → 框架机制」分三组。本篇乃至整套讲义遇到不认识的词，先回这张表。</p>
+
+<h3 class="sub">A. K线与技术指标</h3>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>缩写</th><th>全称</th><th>通俗解释</th><th>典型用法</th></tr>
+  <tr><td><b>K线</b></td><td>Candlestick（蜡烛图）</td><td>一根柱子记录一段时间内的<b>开/高/低/收</b>四个价格（OHLC）+ 成交量。15m K线 = 每 15 分钟结一根。K线是所有技术分析和回测的最小数据单元。</td><td>freqtrade 的一切都围绕K线表展开</td></tr>
+  <tr><td><b>OHLCV</b></td><td>Open, High, Low, Close, Volume</td><td>K线的五个数据列：开盘价、最高价、最低价、收盘价、成交量。</td><td>dataframe 自带的五列</td></tr>
+  <tr><td><b>MA</b></td><td>Moving Average（移动平均）</td><td>最近 N 根K线收盘价的<b>算术平均</b>，连成线。它抹平噪音、显出趋势方向。缺点：对每根K线一视同仁，新数据来得慢。</td><td>MA20 = 最近 20 根的均价线</td></tr>
+  <tr><td><b>EMA</b></td><td>Exponential Moving Average（指数移动平均）</td><td>MA 的改良版：给<b>越新的K线越大的权重</b>，对价格变化反应更快。代价是更容易被短期噪音干扰。「EMA12 > EMA200」即经典的金叉判断大趋势向上。</td><td>第 6 节策略的快慢线</td></tr>
+  <tr><td><b>RSI</b></td><td>Relative Strength Index（相对强弱指标）</td><td>衡量「最近一段时间涨的力气 vs 跌的力气」，输出 0~100 的数。传统解读：<b>&lt;30 超卖</b>（跌过头，可能反弹）、<b>&gt;70 超买</b>（涨过头，可能回调）。本质是找「趋势中的回调买点」。</td><td>第 6 节策略的入场过滤</td></tr>
+  <tr><td><b>ATR</b></td><td>Average True Range（平均真实波幅）</td><td>最近 N 根K线「平均一根能波动多宽」，单位是价格本身。它不看方向、只看<b>波动的剧烈程度</b>——用来给止损定宽度：波动大的币止损放宽，波动小的收紧。</td><td>05 篇的波动率止损</td></tr>
+  <tr><td><b>金叉/死叉</b></td><td>Golden Cross / Death Cross</td><td>快线从下往上穿越慢线 = 金叉（转多信号）；反之为死叉（转空信号）。</td><td>EMA12/EMA200 组合</td></tr>
+  <tr><td><b>超买/超卖</b></td><td>Overbought / Oversold</td><td>价格短期涨/跌得太猛，动能透支，反向修正概率增大。常用 RSI 阈值判定（70/30）。</td><td>RSI 应用场景</td></tr>
+</table></div>
+
+<h3 class="sub">B. 交易与收益术语</h3>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>缩写</th><th>全称</th><th>通俗解释</th><th>典型用法</th></tr>
+  <tr><td><b>ROI</b></td><td>Return on Investment（投资回报率）</td><td>收益 ÷ 成本。0.06 = 6%。freqtrade 里的 <code class="inline">minimal_roi</code> 是一张<b>阶梯止盈表</b>：持仓越久，触发平仓的利润门槛越低——赚 6% 立刻走，套了 3 小时后赚 1% 也走。</td><td>第 6 节退出规则</td></tr>
+  <tr><td><b>做多/做空</b></td><td>Long / Short</td><td>做多 = 先买后卖，赌涨；做空 = 先借币卖出、跌了买回还币，赌跌。现货只能做多（<code class="inline">can_short=False</code>），合约两者皆可。</td><td>enter_long / enter_short 列</td></tr>
+  <tr><td><b>开仓/平仓</b></td><td>Open / Close Position</td><td>开仓 = 建立一笔持仓（买入）；平仓 = 结束这笔持仓（卖出落袋）。一买一卖之间盈亏结算。</td><td>entry / exit 回调</td></tr>
+  <tr><td><b>止损</b></td><td>Stop Loss</td><td>亏损达到预设线（如 -5%）<b>无条件强制平仓</b>，切断单笔最大损失。是「活得久」的第一道保险。</td><td>stoploss = -0.05</td></tr>
+  <tr><td><b>追踪止损</b></td><td>Trailing Stop</td><td>止损线不固定，而是<b>跟着最高价往上爬</b>：涨得越高，锁定的利润越多；一旦从高点回撤一定幅度立刻平仓。「涨了保住利润，跌了自动逃跑」。</td><td>trailing_stop 三参数</td></tr>
+  <tr><td><b>回撤</b></td><td>Drawdown</td><td>账户从<b>最高点跌下来的最大幅度</b>。年赚 100% 但中途回撤 80%，大概率活不到终点——所以报表里 Max drawdown 比收益率更值得盯。</td><td>回测报表核心指标</td></tr>
+  <tr><td><b>滑点</b></td><td>Slippage</td><td>你计划成交的价格 vs 实际成交价格的差。下单瞬间价格变了、或深度不够吃多档，都会产生滑点。回测默认无滑点，所以回测收益天然偏乐观。</td><td>entry_pricing 配置</td></tr>
+  <tr><td><b>订单簿</b></td><td>Order Book</td><td>交易所里「谁在什么价位挂了买单/卖单」的实时列表。买一/卖一（bid/ask）= 离成交价最近的两档。<code class="inline">price_side: other</code> 就是挂对手档价，保证立刻成交。</td><td>entry_pricing 配置</td></tr>
+  <tr><td><b>限价单/市价单</b></td><td>Limit / Market Order</td><td>限价单 = 指定价格挂单（可能不成交）；市价单 = 按当前盘口立刻成交（价格不受控）。freqtrade 用「越过盘口一档的限价单」折中：近似市价的速度 + 限价的价格保护。</td><td>order_type 配置</td></tr>
+  <tr><td><b>现货/合约</b></td><td>Spot / Futures</td><td>现货 = 真实买卖币本身；合约 = 交易「未来交割的合同」，带杠杆、可做空、会被强制平仓。风险级别完全不同。<code class="inline">trading_mode</code> 控制。</td><td>trading_mode: spot</td></tr>
+</table></div>
+
+<h3 class="sub">C. freqtrade 框架机制术语</h3>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>术语</th><th>通俗解释</th><th>在哪配置</th></tr>
+  <tr><td><b>dry-run（模拟盘）</b></td><td>引擎完整跑：真实行情、真实信号、真实下单逻辑，唯一区别是<b>订单不进交易所，成交记录存本地 sqlite</b>。检验策略在真实时间流里表现的最后一步，上实盘前的必经关卡。</td><td>config: dry_run: true</td></tr>
+  <tr><td><b>回测（Backtesting）</b></td><td>把策略放到<b>历史数据</b>上重放一遍，统计它「如果当时在场会赚多少」。快（几分钟跑几年），但只能逼近、不能替代 dry-run（无滑点、无排队、无情绪）。</td><td>freqtrade backtesting</td></tr>
+  <tr><td><b>白名单（pair_whitelist）</b></td><td>允许交易的币种列表。策略只在白名单内的币上找信号。配合 VolumePairList 可按成交量动态筛选。</td><td>exchange.pair_whitelist</td></tr>
+  <tr><td><b>交易对（Pair）</b></td><td>「用什么买什么」，如 BTC/USDT = 用 USDT 买 BTC。斜线前是基础币、后是计价币。freqtrade 的 pair 写法统一为 <code class="inline">基础/计价</code>。</td><td>白名单元素</td></tr>
+  <tr><td><b>stake（投入额）</b></td><td>每笔交易投入多少计价货币。<code class="inline">unlimited</code> = 按 max_open_trades 均分可用余额。</td><td>stake_amount</td></tr>
+  <tr><td><b>timeframe（周期）</b></td><td>策略主K线周期。15m = 每 15 分钟出一根新K线、做一次完整决策。周期越短交易越频繁、噪音越大。</td><td>策略类 timeframe</td></tr>
+  <tr><td><b>informative pair</b></td><td>「参考K线」：主策略跑 15m，但想同时看 1h/4h 大周期指标（如 BTC 的 4h 趋势），就把它声明为 informative——多周期数据合并的机制。</td><td>informative_pairs()</td></tr>
+  <tr><td><b>walk-forward（滚动训练）</b></td><td>FreqAI 的训练方式：用「过去 N 天」训练模型 → 预测「未来 M 天」→ 窗口前移重复。模拟真实世界「你永远只有历史数据」的约束，防止用未来数据训练的作弊模型。</td><td>freqai 配置块</td></tr>
+  <tr><td><b>过拟合（Overfitting）</b></td><td>模型/参数把历史数据的<b>噪音当规律</b>学了下来——回测完美、实盘即死。参数越多、优化轮数越多越容易过拟合。防线：留出验证段、参数越少越好。</td><td>03/07 篇详述</td></tr>
+  <tr><td><b>hyperopt（超参优化）</b></td><td>freqtrade 内置的自动调参：给参数空间，它跑几百轮回测迭代，找损失函数最优的参数组合。是「过拟合制造机」，用完必须留独立数据验证。</td><td>freqtrade hyperopt</td></tr>
+</table></div>
+
+<div class="callout note">
+  <div class="co-title">💡 一句话记忆版</div>
+  <p><b>EMA</b>=加权平均线看趋势，<b>RSI</b>=涨跌力气对比找回调点，<b>ROI</b>=利润率（阶梯止盈的门槛），<b>止损</b>=亏损刹车，<b>回撤</b>=从山顶跌多深，<b>滑点</b>=计划价与成交价的差，<b>dry-run</b>=全真模拟不花真钱。</p>
+</div>
+
 <h2 class="section"><span class="sec-no">2</span>安装与环境（WSL2 + 代理）</h2>
 
 <h3 class="sub">2.1 三种安装方式对比</h3>
