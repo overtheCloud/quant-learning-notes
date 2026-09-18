@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⑩ 策略分类与实现 · 四大家族逐行精讲</title>
+<link rel="stylesheet" href="assets/guide.css">
+</head>
+<body class="with-sidebar">
+<aside class="sidebar" aria-label="全篇导航">
+  <div class="sb-brand"><div class="sb-t">📚 量化 · 图解讲义</div><div class="sb-s">crypto-trader 配套<br>01-07 按顺序学 · 随时互跳</div></div>
+  <nav class="sb-nav">
+    <a class="sb-item" href="00-index.html"><span class="sb-idx" style="background:#1c2333">00</span><span class="sb-txt">总览与使用</span></a>
+    <a class="sb-item" href="01-量化基础.html"><span class="sb-idx" style="background:#3454d1">01</span><span class="sb-txt">量化基础</span></a>
+    <a class="sb-item" href="02-freqtrade入门.html"><span class="sb-idx" style="background:#1f9d55">02</span><span class="sb-txt">freqtrade 入门</span></a>
+    <a class="sb-item" href="03-回测方法论.html"><span class="sb-idx" style="background:#b7791f">03</span><span class="sb-txt">回测方法论</span></a>
+    <a class="sb-item" href="04-经典策略与K线.html"><span class="sb-idx" style="background:#6d4fc1">04</span><span class="sb-txt">经典策略与 K 线</span></a>
+    <a class="sb-item" href="05-风控与止损.html"><span class="sb-idx" style="background:#d64545">05</span><span class="sb-txt">风控与止损</span></a>
+    <a class="sb-item" href="06-FreqAI与机器学习.html"><span class="sb-idx" style="background:#0f8a8a">06</span><span class="sb-txt">FreqAI 与机器学习</span></a>
+    <a class="sb-item" href="07-hyperopt参数优化.html"><span class="sb-idx" style="background:#3454d1">07</span><span class="sb-txt">hyperopt 参数优化</span></a>
+    <a class="sb-item" href="08-书单与拓展.html"><span class="sb-idx" style="background:#7b8499">08</span><span class="sb-txt">书单与拓展</span></a>
+    <a class="sb-item" href="09-freqtrade实战详解.html"><span class="sb-idx" style="background:#2f6f4f">09</span><span class="sb-txt">freqtrade 实战详解</span></a>
+    <a class="sb-item cur" href="10-策略分类与实现.html"><span class="sb-idx" style="background:#8a5a2d">10</span><span class="sb-txt">策略分类与实现</span><span class="sb-go">›</span></a>
+  </nav>
+  <div class="sb-foot">浏览器 Ctrl+P 可导出 PDF<br>当前共 11 篇</div>
+</aside>
+
+<nav class="sb-topbar" aria-label="全篇导航">
+  <a href="00-index.html">00 总览</a>
+  <a href="01-量化基础.html">01 量化基础</a>
+  <a href="02-freqtrade入门.html">02 freqtrade</a>
+  <a href="03-回测方法论.html">03 回测</a>
+  <a href="04-经典策略与K线.html">04 策略·K线</a>
+  <a href="05-风控与止损.html">05 风控</a>
+  <a href="06-FreqAI与机器学习.html">06 FreqAI</a>
+  <a href="07-hyperopt参数优化.html">07 hyperopt</a>
+  <a href="08-书单与拓展.html">08 书单</a>
+  <a href="09-freqtrade实战详解.html">09 实战</a>
+  <a class="cur" href="10-策略分类与实现.html">10 策略分类</a>
+</nav>
+
+<div class="container">
+<div class="page">
+<header class="hero">
+  <span class="step-tag">STEP ⑩ · 策略宝库</span>
+  <h1>策略分类与实现：四大家族，逐行精讲</h1>
+  <p class="goal">目标：<b>搞清策略有哪些流派 → 每个流派适合什么行情、为什么有效、会在什么情况下亏钱 → 各自给出可跑的完整代码（逐行注释）</b>。读完你能按行情挑策略、看懂别人的策略属于哪派。名词不认识的回 <a href="09-freqtrade实战详解.html">09 篇 1½ 节术语表</a>查。</p>
+</header>
+<main class="content">
+
+<h2 class="section"><span class="sec-no">1</span>先看全景：行情只有两种，策略分四大派</h2>
+<p>所有技术面策略，本质上都在回答同一个问题——<b>「价格接下来会怎么走？」</b>。而答案只有两种信仰：</p>
+<ul>
+  <li><b>趋势派</b>相信：涨的会继续涨，跌的会继续跌（惯性）→ 顺势而为</li>
+  <li><b>回归派</b>相信：涨多了会跌回来，跌多了会弹回去（均值回归）→ 逆势抄底摸顶</li>
+</ul>
+<p>再加上「入场方式」的差别（跟随已形成的趋势 / 赌突破关键位 / 追逐涨速），就展开了四大流派：</p>
+
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>流派</th><th>一句话原理</th><th>适合行情</th><th>怕什么行情</th><th>代表指标</th></tr>
+  <tr><td><b>① 趋势跟随</b></td><td>趋势已形成，顺着方向上车</td><td><span class="badge g">单边趋势市</span></td><td><span class="badge r">震荡市（反复打脸）</span></td><td>EMA、MACD、ADX</td></tr>
+  <tr><td><b>② 均值回归</b></td><td>价格偏离均值太远，赌它弹回去</td><td><span class="badge g">区间震荡市</span></td><td><span class="badge r">单边暴跌（接飞刀）</span></td><td>布林带、RSI、KDJ</td></tr>
+  <tr><td><b>③ 突破</b></td><td>横盘被打破的瞬间跟进，赌大行情启动</td><td><span class="badge g">长期盘整→变盘</span></td><td><span class="badge r">假突破（追高被套）</span></td><td>唐奇安通道、箱体高低点</td></tr>
+  <tr><td><b>④ 动量</b></td><td>最近涨得猛的会继续猛（强者恒强）</td><td><span class="badge g">普涨牛市</span></td><td><span class="badge r">急速反转</span></td><td>ROC、涨跌幅排名</td></tr>
+</table></div>
+
+<div class="figure">
+<svg viewBox="0 0 680 240" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="240" fill="#ffffff"/>
+  <defs>
+    <marker id="b1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#1f9d55"/></marker>
+    <marker id="b2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#d64545"/></marker>
+  </defs>
+  <g font-size="12.5">
+    <text x="340" y="28" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">同一波走势，四派看到的机会完全不同</text>
+    <!-- 左图：趋势市 -->
+    <text x="170" y="58" text-anchor="middle" font-weight="700" fill="#1f9d55">趋势市</text>
+    <path d="M 40 160 C 90 150, 120 140, 160 110 C 200 80, 230 90, 300 50" fill="none" stroke="#3454d1" stroke-width="2.2"/>
+    <circle cx="140" cy="126" r="5" fill="#1f9d55"/>
+    <text x="140" y="180" text-anchor="middle" fill="#1f9d55" font-size="11.5">趋势派买点：</text>
+    <text x="140" y="196" text-anchor="middle" fill="#7b8499" font-size="11">确认向上后上车 ✓</text>
+    <text x="255" y="105" text-anchor="middle" fill="#d64545" font-size="11.5">回归派在这里做空 ✗</text>
+    <text x="255" y="121" text-anchor="middle" fill="#7b8499" font-size="11">（逆势 = 接刀）</text>
+    <!-- 分隔线 -->
+    <line x1="340" y1="50" x2="340" y2="210" stroke="#e4e8f0" stroke-width="1.5"/>
+    <!-- 右图：震荡市 -->
+    <text x="510" y="58" text-anchor="middle" font-weight="700" fill="#b7791f">震荡市</text>
+    <path d="M 380 100 C 400 60, 420 60, 440 100 C 460 140, 480 140, 500 100 C 520 60, 540 60, 560 100 C 580 140, 600 140, 620 100" fill="none" stroke="#b7791f" stroke-width="2.2"/>
+    <line x1="375" y1="62" x2="625" y2="62" stroke="#d64545" stroke-width="1.3" stroke-dasharray="5 4"/>
+    <text x="632" y="58" fill="#d64545" font-size="10.5">上轨</text>
+    <line x1="375" y1="140" x2="625" y2="140" stroke="#1f9d55" stroke-width="1.3" stroke-dasharray="5 4"/>
+    <text x="632" y="144" fill="#1f9d55" font-size="10.5">下轨</text>
+    <circle cx="415" cy="68" r="5" fill="#d64545"/>
+    <circle cx="535" cy="68" r="5" fill="#d64545"/>
+    <text x="510" y="180" text-anchor="middle" fill="#1f9d55" font-size="11.5">回归派买点：下轨附近买，上轨附近卖 ✓</text>
+    <text x="510" y="198" text-anchor="middle" fill="#7b8499" font-size="11">趋势派在震荡市反复小亏 ✗</text>
+    <text x="340" y="228" text-anchor="middle" fill="#7b8499" font-size="11.5">没有全能策略——先判断行情类型，再选流派（第 6 节教你判断）</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 10-1</b> · 同一段走势，趋势派与回归派的视角对比：策略亏损大多源于「流派与行情错配」</div>
+</div>
+
+<div class="callout warn">
+  <div class="co-title">⚠️ 先记住这个不等式</div>
+  <p><b>策略的亏损，大部分不是代码写得差，而是「用错行情」。</b>趋势策略在震荡市里被反复止损，回归策略在单边市里越抄越跌——这不是 bug，是流派天性。所以每节开头都写清「适合什么、怕什么」。</p>
+</div>
+
+<!-- ============ 2. 趋势跟随 ============ -->
+<h2 class="section"><span class="sec-no">2</span>家族一：趋势跟随（Trend Following）</h2>
+
+<h3 class="sub">2.1 原理与适用场景</h3>
+<p><b>核心信仰</b>：价格有惯性，已形成的趋势大概率延续一段。做法：用两条快慢均线判断方向，方向一致时入场，方向反转时离场。<b>牺牲胜率换盈亏比</b>——典型趋势策略胜率只有 35-45%，但一次大趋势的利润能覆盖多次小亏损。</p>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>维度</th><th>说明</th></tr>
+  <tr><td>适合行情</td><td>单边趋势市：BTC 牛市主升浪、暴跌后的持续阴跌</td></tr>
+  <tr><td>怕什么</td><td>无趋势的箱体震荡：均线反复金叉死叉，每次都是小亏，积累起来很致命</td></tr>
+  <tr><td>盈利结构</td><td>低胜率（35-45%）+ 高盈亏比（赚一笔顶亏三四笔）</td></tr>
+  <tr><td>典型改进</td><td>加 ADX 强度过滤（震荡市不交易）、用追踪止损让利润奔跑</td></tr>
+</table></div>
+
+<h3 class="sub">2.2 完整代码（EMA 交叉 + ADX 过滤，逐行注释）</h3>
+<pre class="code"><span class="filename">user_data/strategies/TrendFollowStrategy.py</span>
+<span class="k">from</span> pandas <span class="k">import</span> DataFrame          <span class="c"># DataFrame = 装K线的表格（每行一根K线）</span>
+<span class="k">import</span> talib.abstract <span class="k">as</span> ta             <span class="c"># 技术指标计算库</span>
+<span class="k">from</span> freqtrade.strategy <span class="k">import</span> IStrategy, IntParameter
+                                      <span class="c"># IStrategy = 策略基类；IntParameter = 可被 hyperopt 优化的整数参数</span>
+
+
+<span class="k">class</span> <span class="f">TrendFollowStrategy</span>(IStrategy):  <span class="c"># 策略类，继承基类；类名必须与 --strategy 参数一致</span>
+
+    INTERFACE_VERSION = <span class="n">3</span>               <span class="c"># 声明用 v3 现代接口（enter_long/exit_long 四列协议）</span>
+
+    <span class="c"># ---------- 引擎行为 ----------</span>
+    timeframe = <span class="s">'1h'</span>                  <span class="c"># 1小时K线。趋势策略用大周期，噪音少、信号稳</span>
+    can_short = <span class="k">False</span>                <span class="c"># 现货只做多</span>
+    startup_candle_count = <span class="n">260</span>         <span class="c"># 预热K线数：EMA200(200) + ADX(14) + 裕量 → 260 根</span>
+    process_only_new_candles = <span class="k">True</span>    <span class="c"># 只在新K线收盘时计算（信号确定，省 CPU）</span>
+
+    <span class="c"># ---------- 退出规则 ----------</span>
+    minimal_roi = {                    <span class="c"># 趋势策略**不要**用紧的 ROI 止盈——会把大利润截断！</span>
+        <span class="s">'0'</span>: <span class="n">0.30</span>,                  <span class="c"># 设一个很宽的 +30%：正常情况下永远轮不到它触发，</span>
+    }                                  <span class="c"># 利润主要靠 exit 信号（趋势反转）和追踪止损去吃</span>
+    stoploss = -<span class="n">0.10</span>                 <span class="c"># 硬止损 -10%：趋势策略止损要宽（容得回撤），否则被震出局</span>
+    trailing_stop = <span class="k">True</span>              <span class="c"># 开追踪止损：趋势走多远，利润就跟多远（趋势策略灵魂）</span>
+    trailing_stop_positive = <span class="n">0.03</span>     <span class="c"># 从最高点回撤 3% 就平仓锁利</span>
+    trailing_stop_positive_offset = <span class="n">0.06</span>
+                                      <span class="c"># 浮盈达 +6% 才激活追踪（刚开仓仍受 -10% 硬止损保护）</span>
+    trailing_only_offset_is_reached = <span class="k">True</span>
+                                      <span class="c"># 未到 +6% 前不追踪，两个机制分段接力</span>
+
+    <span class="c"># ---------- 可优化参数 ----------</span>
+    adx_threshold = IntParameter(<span class="n">15</span>, <span class="n">35</span>, default=<span class="n">25</span>, space=<span class="s">'buy'</span>)
+                                      <span class="c"># ADX 强度门槛：hyperopt 在 15~35 之间找最优值，默认 25</span>
+
+    <span class="k">def</span> <span class="f">populate_indicators</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 第 1 步：算指标（只加列，不做决策）。metadata['pair'] = 当前币名</span>
+        dataframe[<span class="s">'ema_fast'</span>] = ta.EMA(dataframe, timeperiod=<span class="n">20</span>)
+                                      <span class="c"># 20周期快线：最近 20 根K线收盘价的加权平均，反应快</span>
+        dataframe[<span class="s">'ema_slow'</span>] = ta.EMA(dataframe, timeperiod=<span class="n">200</span>)
+                                      <span class="c"># 200周期慢线：长期趋势的「水位线」</span>
+        dataframe[<span class="s">'adx'</span>] = ta.ADX(dataframe, timeperiod=<span class="n">14</span>)
+                                      <span class="c"># ADX(平均趋向指数)：衡量趋势**有多强**（0~100）。</span>
+                                      <span class="c"># &gt;25 = 强趋势；&lt;20 = 没趋势（震荡）。注意它不看方向，只看强度</span>
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_entry_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 第 2 步：填入场信号。三个条件全部满足才买：</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'ema_fast'</span>] &gt; dataframe[<span class="s">'ema_slow'</span>]) &amp;
+                                      <span class="c"># 条件1：快线在慢线上方 → 大方向向上（趋势存在）</span>
+            (dataframe[<span class="s">'adx'</span>] &gt; self.adx_threshold.value) &amp;
+                                      <span class="c"># 条件2：ADX &gt; 25 → 这不是震荡，是真趋势（本策略的灵魂过滤）</span>
+            (dataframe[<span class="s">'volume'</span>] &gt; <span class="n">0</span>),         <span class="c"># 条件3：这根K线有成交（排除异常数据）</span>
+            <span class="s">'enter_long'</span>                   <span class="c"># 写入 v3 入场信号列</span>
+        ] = <span class="n">1</span>                           <span class="c"># 满足的行 = 1 = 买入</span>
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_exit_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 第 3 步：填离场信号。趋势反转（快线跌回慢线下方）就撤：</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'ema_fast'</span>] &lt; dataframe[<span class="s">'ema_slow'</span>]),
+                                      <span class="c"># 快线死叉慢线 → 上升趋势结束，不猜测、不扛单</span>
+            <span class="s">'exit_long'</span>
+        ] = <span class="n">1</span>
+        <span class="k">return</span> dataframe</pre>
+
+<div class="callout tip">
+  <div class="co-title">✅ 趋势策略三条军规</div>
+  <ol>
+    <li><b>止损要宽</b>（-8% ~ -12%）：趋势启动前常有回踩，窄止损会被扫出局。</li>
+    <li><b>别用紧 ROI 止盈</b>：趋势的钱在一两次大行情里，+3% 就跑等于放弃盈亏比。</li>
+    <li><b>必须有趋势强度过滤</b>（ADX/ATR）：纯均线交叉在震荡市是绞肉机。</li>
+  </ol>
+</div>
+
+<!-- ============ 3. 均值回归 ============ -->
+<h2 class="section"><span class="sec-no">3</span>家族二：均值回归（Mean Reversion）</h2>
+
+<h3 class="sub">3.1 原理与适用场景</h3>
+<p><b>核心信仰</b>：价格围绕价值上下波动，偏离太远会被「拉回来」。做法：用布林带标出「正常波动范围」，价格跌出下轨（超卖）时买入，弹回中轨时卖出。<b>高胜率 + 小盈利</b>——赚很多次小钱，怕一次大亏。</p>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>维度</th><th>说明</th></tr>
+  <tr><td>适合行情</td><td>区间震荡市：价格在一个箱体内来回（主流币大部分时间处于此状态）</td></tr>
+  <tr><td>怕什么</td><td>单边暴跌：跌出下轨不代表会弹回，可能是崩盘开始——「接飞刀」。所以必须带硬止损</td></tr>
+  <tr><td>盈利结构</td><td>高胜率（55-70%）+ 低盈亏比（每笔赚 1-3%，止损 5%）</td></tr>
+  <tr><td>与趋势派对比</td><td>互为镜像：趋势派低胜率高盈亏比，回归派高胜率低盈亏比</td></tr>
+</table></div>
+
+<h3 class="sub">3.2 完整代码（布林带 + RSI 双确认，逐行注释）</h3>
+<pre class="code"><span class="filename">user_data/strategies/MeanReversionStrategy.py</span>
+<span class="k">from</span> pandas <span class="k">import</span> DataFrame
+<span class="k">import</span> talib.abstract <span class="k">as</span> ta
+<span class="k">from</span> freqtrade.strategy <span class="k">import</span> IStrategy, IntParameter
+
+
+<span class="k">class</span> <span class="f">MeanReversionStrategy</span>(IStrategy):
+    <span class="s">"""跌出布林下轨 + RSI 超卖 → 买；弹回中轨 → 卖"""</span>
+
+    INTERFACE_VERSION = <span class="n">3</span>
+
+    <span class="c"># ---------- 引擎行为 ----------</span>
+    timeframe = <span class="s">'15m'</span>                 <span class="c"># 回归策略用中小周期：震荡的机会更多、更快</span>
+    can_short = <span class="k">False</span>
+    startup_candle_count = <span class="n">120</span>         <span class="c"># 布林(20) 和 RSI(14) 都很短，120 根绰绰有余</span>
+    process_only_new_candles = <span class="k">True</span>
+
+    <span class="c"># ---------- 退出规则 ----------</span>
+    minimal_roi = {
+        <span class="s">'0'</span>: <span class="n">0.04</span>,                  <span class="c"># +4% 止盈：回归策略的目标就是回到均值，别贪</span>
+        <span class="s">'120'</span>: <span class="n">0.02</span>,                 <span class="c"># 2小时后降为 +2%：久等不弹说明判断错了，降低期待</span>
+    }
+    stoploss = -<span class="n">0.05</span>                 <span class="c"># 硬止损 -5%：**回归策略的生命线**。</span>
+                                      <span class="c"># 它怕的就是单边暴跌，止损是唯一的防弹衣</span>
+    <span class="c"># 注意：回归策略不用追踪止损——利润目标本来就是小反弹，</span>
+    <span class="c"># 追踪止损会把还没走完的反弹提前掐掉</span>
+
+    <span class="c"># ---------- 可优化参数 ----------</span>
+    rsi_buy = IntParameter(<span class="n">20</span>, <span class="n">40</span>, default=<span class="n">30</span>, space=<span class="s">'buy'</span>)
+                                      <span class="c"># RSI 入场阈值，默认 30（经典超卖线）</span>
+
+    <span class="k">def</span> <span class="f">populate_indicators</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 布林带：以 20周期均线为中轨，上下各 ±2 倍标准差画出通道。</span>
+        <span class="c"># 统计含义：约 95% 的收盘价落在带内 → 跌出下轨 = 小概率事件 = 超卖</span>
+        bb = ta.BBANDS(dataframe, timeperiod=<span class="n">20</span>, nbdevup=<span class="n">2.0</span>, nbdevdn=<span class="n">2.0</span>)
+                                      <span class="c"># timeperiod=20 中轨周期；nbdevup/dn=2.0 上下轨宽度（2倍标准差）</span>
+                                      <span class="c"># 返回一个字典：上轨/中轨/下轨三条线</span>
+        dataframe[<span class="s">'bb_upper'</span>] = bb[<span class="s">'upperband'</span>]   <span class="c"># 上轨：正常波动的天花板</span>
+        dataframe[<span class="s">'bb_middle'</span>] = bb[<span class="s">'middleband'</span>] <span class="c"># 中轨：20周期均线，即「均值」本尊</span>
+        dataframe[<span class="s">'bb_lower'</span>] = bb[<span class="s">'lowerband'</span>]   <span class="c"># 下轨：正常波动的地板</span>
+        dataframe[<span class="s">'rsi'</span>] = ta.RSI(dataframe, timeperiod=<span class="n">14</span>)
+                                      <span class="c"># RSI：确认超卖的第二个证据（双指标确认，减少误判）</span>
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_entry_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 入场：价格砸穿地板 + RSI 确认超卖 → 赌弹回</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'close'</span>] &lt; dataframe[<span class="s">'bb_lower'</span>]) &amp;
+                                      <span class="c"># 条件1：收盘价 < 布林下轨 → 已跌出 95% 的正常范围</span>
+            (dataframe[<span class="s">'rsi'</span>] &lt; self.rsi_buy.value) &amp;
+                                      <span class="c"># 条件2：RSI < 30 → 下跌动能也确认衰竭（防止「跌出下轨但还在加速跌」）</span>
+            (dataframe[<span class="s">'volume'</span>] &gt; <span class="n">0</span>),
+            <span class="s">'enter_long'</span>
+        ] = <span class="n">1</span>
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_exit_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 离场：价格弹回中轨 = 回归完成 = 目标达成，落袋</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'close'</span>] &gt; dataframe[<span class="s">'bb_middle'</span>]),
+                                      <span class="c"># 收盘价站回中轨上方。别贪到上轨——弹到中轨就开始回落是常态</span>
+            <span class="s">'exit_long'</span>
+        ] = <span class="n">1</span>
+        <span class="k">return</span> dataframe</pre>
+
+<div class="callout tip">
+  <div class="co-title">✅ 回归策略三条军规</div>
+  <ol>
+    <li><b>止损是生命线</b>：单边市里「跌出下轨」会一低再低，没有止损的回归策略终将死于一次黑天鹅。</li>
+    <li><b>止盈要克制</b>：目标就是回到中轨，+2~4% 即落袋，贪到上轨的代价是利润回吐。</li>
+    <li><b>双指标确认</b>：位置（布林）+ 动能（RSI）同时超卖才进场，能砍掉一半的假信号。</li>
+  </ol>
+</div>
+
+<!-- ============ 4. 突破 ============ -->
+<h2 class="section"><span class="sec-no">4</span>家族三：突破（Breakout）</h2>
+
+<h3 class="sub">4.1 原理与适用场景</h3>
+<p><b>核心信仰</b>：长期横盘积累的能量，会在价格突破盘整区间的那一刻释放。做法：盯着近 N 天的最高价（唐奇安上轨），价格创出新高就追入，赌新趋势启动。这是传奇「海龟交易法则」的原型。</p>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>维度</th><th>说明</th></tr>
+  <tr><td>适合行情</td><td>长时间窄幅盘整后的变盘窗口（横有多长，竖有多高）</td></tr>
+  <tr><td>怕什么</td><td><b>假突破</b>：刚追入价格就跌回区间，止损出局——突破策略的主要亏损来源，胜率通常只有 30-40%</td></tr>
+  <tr><td>盈利结构</td><td>最低胜率 + 最高盈亏比：一次真突破的利润覆盖七八次假突破</td></tr>
+  <tr><td>典型改进</td><td>要求突破K线放量、确认收盘站稳（而非盘中触碰）、突破前波动率收缩</td></tr>
+</table></div>
+
+<h3 class="sub">4.2 完整代码（唐奇安通道突破 + 放量确认，逐行注释）</h3>
+<pre class="code"><span class="filename">user_data/strategies/BreakoutStrategy.py</span>
+<span class="k">from</span> pandas <span class="k">import</span> DataFrame
+<span class="k">import</span> talib.abstract <span class="k">as</span> ta
+<span class="k">from</span> freqtrade.strategy <span class="k">import</span> IStrategy, IntParameter
+
+
+<span class="k">class</span> <span class="f">BreakoutStrategy</span>(IStrategy):
+    <span class="s">"""价格创 20 日新高且放量 → 追入；跌破 10 日新低 → 离场（海龟思想简化版）"""</span>
+
+    INTERFACE_VERSION = <span class="n">3</span>
+
+    <span class="c"># ---------- 引擎行为 ----------</span>
+    timeframe = <span class="s">'1h'</span>                  <span class="c"># 突破看关键位，用 1h 减少盘内噪音</span>
+    can_short = <span class="k">False</span>
+    startup_candle_count = <span class="n">240</span>         <span class="c"># 唐奇安窗口(20) + 成交量均线(20) + 大裕量</span>
+    process_only_new_candles = <span class="k">True</span>
+
+    <span class="c"># ---------- 退出规则 ----------</span>
+    minimal_roi = {                    <span class="c"># 同趋势策略：宽 ROI，让利润奔跑</span>
+        <span class="s">'0'</span>: <span class="n">0.25</span>,
+    }
+    stoploss = -<span class="n">0.08</span>                 <span class="c"># 止损比趋势派略紧：假突破要快认错</span>
+    trailing_stop = <span class="k">True</span>              <span class="c"># 真突破走成趋势后，靠追踪止损吃全程</span>
+    trailing_stop_positive = <span class="n">0.03</span>
+    trailing_stop_positive_offset = <span class="n">0.05</span>
+    trailing_only_offset_is_reached = <span class="k">True</span>
+
+    <span class="c"># ---------- 可优化参数 ----------</span>
+    vol_multiplier = IntParameter(<span class="n">1</span>, <span class="n">3</span>, default=<span class="n">2</span>, space=<span class="s">'buy'</span>)
+                                      <span class="c"># 放量倍数：突破K线成交量需是平均量的几倍</span>
+
+    <span class="k">def</span> <span class="f">populate_indicators</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        dataframe[<span class="s">'don_high'</span>] = dataframe[<span class="s">'high'</span>].rolling(<span class="n">20</span>).max().shift(<span class="n">1</span>)
+                                      <span class="c"># 唐奇安上轨 = 前 20 根K线的最高价。</span>
+                                      <span class="c"># ⚠️ .shift(1) 是关键：往前挪一根，只看「之前」的 20 根，</span>
+                                      <span class="c"># 不然「今天的最高价 > 含今天的 20 日最高」永远不成立</span>
+        dataframe[<span class="s">'don_low'</span>] = dataframe[<span class="s">'low'</span>].rolling(<span class="n">10</span>).min().shift(<span class="n">1</span>)
+                                      <span class="c"># 唐奇安下轨 = 前 10 根的最低价（离场用短窗口，跑得快）</span>
+        dataframe[<span class="s">'vol_avg'</span>] = dataframe[<span class="s">'volume'</span>].rolling(<span class="n">20</span>).mean()
+                                      <span class="c"># 20周期平均成交量，用来判断「放量」</span>
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_entry_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 入场：收盘价突破前 20 根高点 + 成交量放大（假突破过滤）</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'close'</span>] &gt; dataframe[<span class="s">'don_high'</span>]) &amp;
+                                      <span class="c"># 条件1：收盘价 > 唐奇安上轨 → 创出 20 日新高（用收盘价</span>
+                                      <span class="c"># 而非最高价：要求「站稳」，过滤盘中冲高回落的假突破）</span>
+            (dataframe[<span class="s">'volume'</span>] &gt; dataframe[<span class="s">'vol_avg'</span>] * self.vol_multiplier.value) &amp;
+                                      <span class="c"># 条件2：成交量 > 平均量×2 → 市场真金白银在推，不是诱多</span>
+            (dataframe[<span class="s">'volume'</span>] &gt; <span class="n">0</span>),
+            <span class="s">'enter_long'</span>
+        ] = <span class="n">1</span>
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_exit_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 离场：跌破前 10 根低点 → 突破失败或趋势结束，立刻撤</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'close'</span>] &lt; dataframe[<span class="s">'don_low'</span>]),
+            <span class="s">'exit_long'</span>
+        ] = <span class="n">1</span>
+        <span class="k">return</span> dataframe</pre>
+
+<div class="callout warn">
+  <div class="co-title">⚠️ 突破策略的两大坑</div>
+  <ol>
+    <li><b>忘写 .shift(1)</b>：唐奇安轨道包含了「当前K线」，条件永远无法触发或产生未来函数——这是新手写突破策略的第一大 bug。</li>
+    <li><b>入场太早</b>：用盘中价格触碰就买，会吃满假突破；用<b>收盘价确认</b>宁可少赚一点，胜率高一截。</li>
+  </ol>
+</div>
+
+<!-- ============ 5. 动量 ============ -->
+<h2 class="section"><span class="sec-no">5</span>家族四：动量（Momentum）</h2>
+
+<h3 class="sub">5.1 原理与适用场景</h3>
+<p><b>核心信仰</b>：涨得快的会继续快（强者恒强）。学术上叫动量效应，是实证金融里最扎实的异象之一。单币上用 ROC（变化率）衡量「最近涨了多少」；多币组合上则是「买涨幅榜前几名、定期换仓」——后者 freqtrade 需要自定义，本篇给单币版。</p>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>维度</th><th>说明</th></tr>
+  <tr><td>适合行情</td><td>普涨牛市：资金持续流入，强势币领涨</td></tr>
+  <tr><td>怕什么</td><td>V 型反转：动量指标滞后，急跌时来不及反应</td></tr>
+  <tr><td>盈利结构</td><td>中胜率 + 中盈亏比；持仓周期短（几天），换手率高、手续费敏感</td></tr>
+</table></div>
+
+<h3 class="sub">5.2 完整代码（ROC 动量 + 均线方向过滤，逐行注释）</h3>
+<pre class="code"><span class="filename">user_data/strategies/MomentumStrategy.py</span>
+<span class="k">from</span> pandas <span class="k">import</span> DataFrame
+<span class="k">import</span> talib.abstract <span class="k">as</span> ta
+<span class="k">from</span> freqtrade.strategy <span class="k">import</span> IStrategy, IntParameter, DecimalParameter
+                                      <span class="c"># DecimalParameter = 小数型可优化参数（阈值类用它）</span>
+
+
+<span class="k">class</span> <span class="f">MomentumStrategy</span>(IStrategy):
+    <span class="s">"""最近 N 根K线涨幅超过阈值 + 大方向向上 → 追强势；动量转负 → 离场"""</span>
+
+    INTERFACE_VERSION = <span class="n">3</span>
+
+    <span class="c"># ---------- 引擎行为 ----------</span>
+    timeframe = <span class="s">'4h'</span>                  <span class="c"># 4小时：动量在日线级别最有效，但等日线太慢，4h 折中</span>
+    can_short = <span class="k">False</span>
+    startup_candle_count = <span class="n">230</span>         <span class="c"># EMA200 + ROC 窗口 + 裕量</span>
+    process_only_new_candles = <span class="k">True</span>
+
+    <span class="c"># ---------- 退出规则 ----------</span>
+    minimal_roi = {                    <span class="c"># 动量会衰竭：分批降低止盈门槛</span>
+        <span class="s">'0'</span>: <span class="n">0.10</span>,
+        <span class="s">'48'</span>: <span class="n">0.05</span>,                 <span class="c"># 2天后（4h×12根）：+5% 也走</span>
+    }
+    stoploss = -<span class="n">0.07</span>                 <span class="c"># 动量策略反应快，止损中等偏紧</span>
+    trailing_stop = <span class="k">True</span>
+    trailing_stop_positive = <span class="n">0.025</span>     <span class="c"># 从最高点回撤 2.5% 即锁利（动量衰竭跑得快）</span>
+    trailing_stop_positive_offset = <span class="n">0.04</span>
+    trailing_only_offset_is_reached = <span class="k">True</span>
+
+    <span class="c"># ---------- 可优化参数 ----------</span>
+    roc_threshold = DecimalParameter(<span class="n">0.03</span>, <span class="n">0.15</span>, default=<span class="n">0.06</span>, decimals=<span class="n">2</span>, space=<span class="s">'buy'</span>)
+                                      <span class="c"># ROC 入场门槛：默认 6%（3%~15% 之间优化）， decimals=2 保留两位小数</span>
+
+    <span class="k">def</span> <span class="f">populate_indicators</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        dataframe[<span class="s">'roc'</span>] = ta.ROC(dataframe, timeperiod=<span class="n">12</span>)
+                                      <span class="c"># ROC(变化率) = (今收 - 12根前收) / 12根前收。</span>
+                                      <span class="c"># 0.06 = 最近 48 小时涨了 6%。衡量「涨速」</span>
+        dataframe[<span class="s">'ema_slow'</span>] = ta.EMA(dataframe, timeperiod=<span class="n">200</span>)
+                                      <span class="c"># 大方向过滤：只在 200EMA 上方追多（牛市里做动量）</span>
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_entry_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 入场：涨速快 + 大趋势向上（动量与趋势的合体）</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'roc'</span>] &gt; self.roc_threshold.value) &amp;
+                                      <span class="c"># 条件1：ROC > 6% → 最近 12 根K线涨了 6% 以上，强势</span>
+            (dataframe[<span class="s">'close'</span>] &gt; dataframe[<span class="s">'ema_slow'</span>]) &amp;
+                                      <span class="c"># 条件2：价格在 200EMA 上方 → 大盘环境配合，避免熊市里追反弹</span>
+            (dataframe[<span class="s">'volume'</span>] &gt; <span class="n">0</span>),
+            <span class="s">'enter_long'</span>
+        ] = <span class="n">1</span>
+        <span class="k">return</span> dataframe
+
+    <span class="k">def</span> <span class="f">populate_exit_trend</span>(self, dataframe: DataFrame, metadata: dict) -&gt; DataFrame:
+        <span class="c"># 离场：动量转负 = 涨势停止，强势逻辑消失，立刻撤</span>
+        dataframe.loc[
+            (dataframe[<span class="s">'roc'</span>] &lt; <span class="n">0</span>),            <span class="c"># ROC < 0 → 最近 12 根K线整体在跌</span>
+            <span class="s">'exit_long'</span>
+        ] = <span class="n">1</span>
+        <span class="k">return</span> dataframe</pre>
+
+<!-- ============ 6. 其他家族 ============ -->
+<h2 class="section"><span class="sec-no">6</span>其他家族速览（知道存在即可）</h2>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>家族</th><th>原理一句话</th><th>为何本篇不展开</th></tr>
+  <tr><td><b>网格（Grid）</b></td><td>在区间内挂一排买卖单，跌一格买、涨一格卖，吃震荡</td><td>freqtrade 原生不按网格模型设计，需大量 custom 代码；且单边行情必亏</td></tr>
+  <tr><td><b>套利（Arbitrage）</b></td><td>同一资产在两处有价差，低买高卖锁定无风险利润</td><td>拼速度与深度，个人在 CEX 已无空间</td></tr>
+  <tr><td><b>统计套利/配对</b></td><td>两个高相关币的价差偏离时，做多弱的做空强的</td><td>需做空 + 高频调仓，现货框架不友好</td></tr>
+  <tr><td><b>机器学习（FreqAI）</b></td><td>让模型自己学「什么条件下未来收益高」</td><td><b>你的主项目就是它</b>，全篇见 <a href="06-FreqAI与机器学习.html">06 篇</a>；本质是把上面四派的「人为定规则」换成「模型定规则」</td></tr>
+</table></div>
+
+<!-- ============ 7. 选型 ============ -->
+<h2 class="section"><span class="sec-no">7</span>怎么选：先判行情，再选流派</h2>
+<p>判断当前行情的最快方法——把 K 线图缩到全局，问一个问题：<b>「价格是在走台阶，还是在走波浪？」</b></p>
+
+<div class="figure">
+<svg viewBox="0 0 680 250" xmlns="http://www.w3.org/2000/svg" style="font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif">
+  <rect width="680" height="250" fill="#ffffff"/>
+  <defs>
+    <marker id="c1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7b8499"/></marker>
+  </defs>
+  <g font-size="12.5">
+    <text x="340" y="28" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1c2333">策略选型决策树</text>
+    <!-- 判断框 -->
+    <rect x="230" y="50" width="220" height="44" rx="10" fill="#eaf0fe" stroke="#cdd9f8"/>
+    <text x="340" y="70" text-anchor="middle" font-weight="700" fill="#3454d1">行情是「单边」还是「震荡」？</text>
+    <text x="340" y="86" text-anchor="middle" fill="#7b8499" font-size="11">台阶式推进 = 单边 / 波浪式来回 = 震荡</text>
+    <!-- 左分支 -->
+    <line x1="230" y1="72" x2="120" y2="130" stroke="#7b8499" stroke-width="1.5" marker-end="url(#c1)"/>
+    <text x="150" y="100" fill="#1f9d55" font-weight="700" font-size="11.5">单边向上/可能变盘</text>
+    <rect x="30" y="132" width="180" height="40" rx="10" fill="#e9f7ef" stroke="#bfe6cf"/>
+    <text x="120" y="148" text-anchor="middle" font-weight="700" fill="#1f9d55">趋势跟随 / 突破</text>
+    <text x="120" y="164" text-anchor="middle" fill="#7b8499" font-size="11">止损放宽 · 让利润奔跑</text>
+    <!-- 右分支 -->
+    <line x1="450" y1="72" x2="560" y2="130" stroke="#7b8499" stroke-width="1.5" marker-end="url(#c1)"/>
+    <text x="520" y="100" fill="#b7791f" font-weight="700" font-size="11.5">震荡（有明确箱体）</text>
+    <rect x="470" y="132" width="180" height="40" rx="10" fill="#fdf4e3" stroke="#eed9ae"/>
+    <text x="560" y="148" text-anchor="middle" font-weight="700" fill="#b7791f">均值回归</text>
+    <text x="560" y="164" text-anchor="middle" fill="#7b8499" font-size="11">止损是生命线 · 小赚即走</text>
+    <!-- 底部 -->
+    <line x1="340" y1="94" x2="340" y2="140" stroke="#7b8499" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#c1)"/>
+    <text x="340" y="120" fill="#0f8a8a" font-weight="700" font-size="11.5">普涨牛市且分不清？</text>
+    <rect x="250" y="142" width="180" height="40" rx="10" fill="#e4f6f6" stroke="#bfe2e2"/>
+    <text x="340" y="158" text-anchor="middle" font-weight="700" fill="#0f8a8a">动量（追强势币）</text>
+    <text x="340" y="174" text-anchor="middle" fill="#7b8499" font-size="11">配合 200EMA 方向过滤</text>
+    <text x="340" y="215" text-anchor="middle" fill="#7b8499" font-size="11.5">终极答案：不确定行情 → 空仓也是一种策略。四大家族没覆盖的行情，硬做必亏。</text>
+    <text x="340" y="233" text-anchor="middle" fill="#7b8499" font-size="11.5">进阶：用 ADX &gt; 25 自动判别（代码见第 2 节），让策略自己识别行情</text>
+  </g>
+</svg>
+<div class="fig-cap"><b>图 10-2</b> · 选型决策树：行情判断 → 流派选择 → 各自的风控要点</div>
+</div>
+
+<h3 class="sub">7.1 四大流派风控参数对照（直接抄作业用）</h3>
+<div class="tbl-wrap"><table class="tbl">
+  <tr><th>参数</th><th>趋势跟随</th><th>均值回归</th><th>突破</th><th>动量</th></tr>
+  <tr><td>止损宽度</td><td><span class="badge r">宽 -8~12%</span></td><td><span class="badge y">紧 -4~6%</span></td><td><span class="badge r">宽 -7~10%</span></td><td><span class="badge y">中 -6~8%</span></td></tr>
+  <tr><td>ROI 止盈</td><td>很宽或不设</td><td><span class="badge g">紧 2~4%</span></td><td>很宽</td><td>阶梯递减</td></tr>
+  <tr><td>追踪止损</td><td><span class="badge g">✔ 灵魂</span></td><td><span class="badge r">✘ 别用</span></td><td><span class="badge g">✔ 推荐</span></td><td>✔ 快回撤型</td></tr>
+  <tr><td>常用周期</td><td>1h~1d</td><td>5m~1h</td><td>1h~1d</td><td>4h~1d</td></tr>
+  <tr><td>核心过滤器</td><td>ADX 强度</td><td>RSI 双确认</td><td>放量确认</td><td>200EMA 方向</td></tr>
+</table></div>
+
+<div class="callout tip">
+  <div class="co-title">✅ 本篇实践任务</div>
+  <ol>
+    <li>把四个策略文件拷进你的 <code class="inline">user_data/strategies/</code>，各跑一次回测（命令见 <a href="09-freqtrade实战详解.html">09 篇第 7 节</a>），对比同一时段谁赚谁亏。</li>
+    <li>挑同一时间段重跑：你会发现某些时段趋势派暴赚回归派暴亏、换个时段反过来——亲眼见「流派-行情错配」比读十遍原理都深刻。</li>
+    <li>把第 2 节的 ADX 阈值从 25 调到 15 和 35 各跑一次，观察震荡市亏损笔数变化。</li>
+  </ol>
+</div>
+
+<div class="foot">配套项目 crypto-trader（freqtrade 2026.7 + FreqAI/LightGBM + DeepSeek 情绪）· 2026-09-18</div>
+</main>
+<nav class="pagenav">
+  <a href="09-freqtrade实战详解.html">← ⑨ freqtrade 实战详解</a>
+  <a href="00-index.html" class="next">返回总览 →</a>
+</nav>
+</div>
+</div>
+</body>
+</html>
